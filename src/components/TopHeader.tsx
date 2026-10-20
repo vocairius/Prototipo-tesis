@@ -1,12 +1,10 @@
 import React from 'react';
-import { Network, GitBranch, Award, Sliders, Play, Check, Menu, Sun, Moon } from 'lucide-react';
+import { Network, GitBranch, Award, Sliders, Check, Menu, Sun, Moon } from 'lucide-react';
 
 interface TopHeaderProps {
   activeView: 'canvas' | 'malla' | 'auditoria';
   onSelectView: (view: 'canvas' | 'malla' | 'auditoria') => void;
   onOpenDiagnostic: () => void;
-  onRunDAG: () => void;
-  isDagRunning: boolean;
   enrolledCredits: number;
   onOpenPreMatricula: () => void;
   onToggleInspector: () => void;
@@ -19,8 +17,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   activeView,
   onSelectView,
   onOpenDiagnostic,
-  onRunDAG,
-  isDagRunning,
   enrolledCredits,
   onOpenPreMatricula,
   onToggleInspector,
@@ -110,28 +106,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         >
           <Sliders className="w-3.5 h-3.5 text-violet-400" />
           <span className="hidden sm:inline">Diagnóstico</span>
-        </button>
-
-        {/* Run DAG Button */}
-        <button
-          onClick={onRunDAG}
-          disabled={isDagRunning}
-          className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-xs font-medium text-emerald-300 hover:text-emerald-200 transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer disabled:opacity-60"
-        >
-          {isDagRunning ? (
-            <>
-              <svg className="animate-spin w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              <span>Calculando...</span>
-            </>
-          ) : (
-            <>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Ejecutar DAG</span>
-            </>
-          )}
         </button>
 
         {/* Pre-enrollment High Contrast Pill */}

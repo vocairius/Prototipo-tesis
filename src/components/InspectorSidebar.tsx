@@ -9,6 +9,7 @@ interface InspectorSidebarProps {
   allCourses: Course[];
   enrolledCourseIds: string[];
   onToggleEnrollCourse: (courseId: string) => void;
+  onToggleCourseApproval: (courseId: string) => void;
   totalCompletedCredits: number;
   totalDegreeCredits: number;
   enrolledCredits: number;
@@ -22,6 +23,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   allCourses,
   enrolledCourseIds,
   onToggleEnrollCourse,
+  onToggleCourseApproval,
   totalCompletedCredits,
   totalDegreeCredits,
   enrolledCredits,
@@ -53,7 +55,12 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
     return {
       id: uId,
       title: found?.title || uId,
-      semester: found?.semester || 0
+      semester: found?.semester || 0,
+      isAvailable: found?.status === 'Disponible' || found?.status === 'Inscrito',
+      remainingPrerequisites:
+        found?.prerequisites.filter((prerequisiteId) =>
+          allCourses.find((course) => course.id === prerequisiteId)?.status !== 'Aprobado'
+        ).length ?? 0
     };
   });
 
@@ -96,14 +103,16 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
           {/* Mini Stats Grid */}
           <div className="grid grid-cols-2 gap-2 pt-2">
             <div className="p-2.5 rounded-xl bg-[#16181d] border border-white/[0.05]">
-              <span className="text-[10px] text-zinc-400 block">Carga Sugerida</span>
+              <span className="text-[10px] text-zinc-400 block">Créditos matriculados</span>
               <span className="text-sm font-semibold text-emerald-400 font-mono">{enrolledCredits} CR</span>
-              <span className="text-[10px] text-zinc-500 block">4 asignaturas óptimas</span>
+              <span className="text-[10px] text-zinc-500 block">{enrolledCourseIds.length} asignaturas</span>
             </div>
             <div className="p-2.5 rounded-xl bg-[#16181d] border border-white/[0.05]">
-              <span className="text-[10px] text-zinc-400 block">Semestre Proyectado</span>
-              <span className="text-sm font-semibold text-white font-mono">3° Nivel</span>
-              <span className="text-[10px] text-zinc-500 block">Plan de 8 periodos</span>
+              <span className="text-[10px] text-zinc-400 block">Materias del plan</span>
+              <span className="text-sm font-semibold text-white font-mono">{allCourses.length}</span>
+              <span className="text-[10px] text-zinc-500 block">
+                {new Set(allCourses.map((course) => course.semester)).size} periodos académicos
+              </span>
             </div>
           </div>
         </div>
@@ -177,7 +186,9 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
 
             {/* Course Graph Dependencies Breakdown */}
             <div className="space-y-2">
-              <span className="text-[11px] font-medium text-zinc-400">Dependencias DAG</span>
+              <span className="text-[11px] font-medium text-zinc-400">
+                {isApproved ? 'Materias que desbloquea' : 'Qué desbloquea al aprobarla'}
+              </span>
               <div className="space-y-1.5 text-xs">
                 {prereqDetails.length > 0 ? (
                   prereqDetails.map((prereq) => (
@@ -216,15 +227,35 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                         <span className="text-zinc-300">Desbloquea: {unlock.id}</span>
                       </div>
-                      <span className="text-[10px] text-zinc-400 font-mono">
-                        {unlock.semester ? `Semestre ${unlock.semester}` : 'Próximo ciclo'}
+                      <span
+                        className={`text-[10px] font-mono ${
+                          unlock.isAvailable ? 'text-emerald-400' : 'text-amber-400'
+                        }`}
+                      >
+                        {unlock.isAvailable
+                          ? 'Disponible para matrícula'
+                          : `Faltan ${unlock.remainingPrerequisites} prerrequisitos`}
                       </span>
                     </div>
                   ))}
               </div>
             </div>
 
-            {/* Enroll / State Toggle Action */}
+            {!isBlocked && (
+              <button
+                onClick={() => onToggleCourseApproval(selectedCourse.id)}
+                className={`w-full py-2.5 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                  isApproved
+                    ? 'bg-[#1c1e24] hover:bg-[#232630] text-amber-300 border border-amber-500/40'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-[#0b0c0e] shadow-lg shadow-emerald-500/20'
+                }`}
+              >
+                {isApproved ? <Check className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                <span>{isApproved ? 'Revertir aprobación' : 'Marcar como aprobada'}</span>
+              </button>
+            )}
+
+            {/* Enrollment action */}
             {!isApproved && !isBlocked && (
               <button
                 onClick={() => onToggleEnrollCourse(selectedCourse.id)}
@@ -235,7 +266,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
                 }`}
               >
                 <Check className="w-4 h-4 stroke-[2.5]" />
-                <span>{isEnrolled ? 'Inscrito en Ruta Sugerida' : 'Inscribir en Pre-matrícula'}</span>
+                <span>{isEnrolled ? 'Quitar de pre-matrícula' : 'Inscribir en Pre-matrícula'}</span>
               </button>
             )}
 

@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Network, Home, BookOpen, AlertTriangle, FileText, Bell, Settings, X, CheckCircle2 } from 'lucide-react';
+import { Course } from '../types/curriculum';
+import { TOTAL_CREDITS } from '../data/curriculumData';
 
 interface LeftDockProps {
+  courses: Course[];
   onSelectView: (view: 'canvas' | 'malla' | 'auditoria') => void;
   onOpenBottlenecks: () => void;
   onOpenHistory: () => void;
@@ -11,6 +14,7 @@ interface LeftDockProps {
 }
 
 export const LeftDock: React.FC<LeftDockProps> = ({
+  courses,
   onSelectView,
   onOpenBottlenecks,
   onOpenHistory,
@@ -20,6 +24,29 @@ export const LeftDock: React.FC<LeftDockProps> = ({
 }) => {
   const [showNotificationPopover, setShowNotificationPopover] = useState(false);
   const [showProfileCard, setShowProfileCard] = useState(false);
+
+  // Notificaciones derivadas de la base de datos curricular.
+  const notificaciones = useMemo(() => {
+    const porId = new Map(courses.map((course) => [course.id, course]));
+
+    // Prerrequisito aprobado: una materia aprobada que desbloquea otra del plan.
+    const aprobado = courses.find(
+      (course) => course.status === 'Aprobado' && course.unlocks.length > 0
+    );
+
+    // Aviso de cuello de botella: la materia que desbloquea más ramas.
+    const cuello = [...courses].sort((a, b) => b.unlocks.length - a.unlocks.length)[0];
+
+    return { aprobado, cuello, porId };
+  }, [courses]);
+
+  const creditosAcumulados = useMemo(
+    () =>
+      courses
+        .filter((course) => course.status === 'Aprobado')
+        .reduce((sum, course) => sum + course.credits, 0),
+    [courses]
+  );
 
   return (
     <>
@@ -148,7 +175,13 @@ export const LeftDock: React.FC<LeftDockProps> = ({
                 <div>
                   <p className="font-medium text-white">Prerrequisito Aprobado</p>
                   <p className="text-[11px] text-zinc-400 mt-0.5">
-                    Álgebra Lineal (MAT-102) calificada con 7.9/10. Desbloqueó Computación Gráfica.
+                    {notificaciones.aprobado
+                      ? `${notificaciones.aprobado.title} (${notificaciones.aprobado.code}) aprobada${
+                          notificaciones.aprobado.grade ? ` con ${notificaciones.aprobado.grade}/10` : ''
+                        }. Desbloqueó ${notificaciones.aprobado.unlocks
+                          .map((id) => notificaciones.porId.get(id)?.title ?? id)
+                          .join(', ')}.`
+                      : 'Aún no hay asignaturas aprobadas registradas en la base de datos.'}
                   </p>
                 </div>
               </div>
@@ -160,7 +193,11 @@ export const LeftDock: React.FC<LeftDockProps> = ({
                 <div>
                   <p className="font-medium text-amber-300">Aviso de Cuello de Botella</p>
                   <p className="text-[11px] text-zinc-400 mt-0.5">
-                    Se recomienda inscribir POO (CC-201) este ciclo para no retrasar Arquitectura en Semestre 4.
+                    {notificaciones.cuello
+                      ? `Se recomienda inscribir ${notificaciones.cuello.title} (${
+                          notificaciones.cuello.code
+                        }) este ciclo: desbloquea ${notificaciones.cuello.unlocks.length} asignaturas.`
+                      : 'Sin cuellos de botella detectados en la base de datos.'}
                   </p>
                 </div>
               </div>
@@ -204,7 +241,10 @@ export const LeftDock: React.FC<LeftDockProps> = ({
             </div>
             <div className="flex justify-between">
               <span className="text-zinc-400">Créditos Acumulados:</span>
-              <span className="text-white font-mono">42 / 164 CR (25.6%)</span>
+              <span className="text-white font-mono">
+                {creditosAcumulados} / {TOTAL_CREDITS} CR (
+                {((creditosAcumulados / TOTAL_CREDITS) * 100).toFixed(1)}%)
+              </span>
             </div>
           </div>
         </div>

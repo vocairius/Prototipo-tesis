@@ -1,21 +1,60 @@
-import React from 'react';
-import { DEGREE_AUDIT_CATEGORIES } from '../data/curriculumData';
+import React, { useMemo } from 'react';
+import { DEGREE_AUDIT_CATEGORIES, TOTAL_CREDITS, TOTAL_SEMESTRES } from '../data/curriculumData';
+import { Course } from '../types/curriculum';
 import { Award, CheckCircle, TrendingUp, Calendar, Download, Check, Sparkles, BookOpen } from 'lucide-react';
 
 interface AuditoriaGradoViewProps {
+  courses: Course[];
+  enrolledCourseIds: string[];
   totalCompletedCredits: number;
   totalDegreeCredits: number;
   enrolledCredits: number;
   theme: 'dark' | 'light';
 }
 
+interface Cadena {
+  titulo: string;
+  detalle: string;
+  aprobada: boolean;
+  enCurso: boolean;
+}
+
 export const AuditoriaGradoView: React.FC<AuditoriaGradoViewProps> = ({
+  courses,
+  enrolledCourseIds,
   totalCompletedCredits,
   totalDegreeCredits,
   enrolledCredits,
   theme
 }) => {
   const percentage = ((totalCompletedCredits / totalDegreeCredits) * 100).toFixed(1);
+
+  // Cadenas de dependencia obligatorias: las asignaturas que exigen más de un
+  // prerrequisito según la base de datos curricular.
+  const cadenas = useMemo<Cadena[]>(() => {
+    const porId = new Map(courses.map((course) => [course.id, course]));
+
+    return courses
+      .filter((course) => course.prerequisites.length >= 2)
+      .sort((a, b) => b.prerequisites.length - a.prerequisites.length)
+      .map((course) => {
+        const prerrequisitos = course.prerequisites
+          .map((id) => porId.get(id)?.title ?? id)
+          .join(' + ');
+
+        const pendientes = course.prerequisites.filter(
+          (id) => porId.get(id)?.status !== 'Aprobado'
+        );
+        const enCurso = pendientes.length > 0 && pendientes.every((id) => enrolledCourseIds.includes(id));
+
+        return {
+          titulo: course.title,
+          detalle: `Requiere ${prerrequisitos} · Semestre ${course.semester}`,
+          aprobada: pendientes.length === 0,
+          enCurso
+        };
+      });
+  }, [courses, enrolledCourseIds]);
 
   return (
     <div className={`flex-1 h-full overflow-y-auto p-6 max-w-6xl mx-auto space-y-6 ${theme === 'dark' ? 'text-zinc-200' : 'text-zinc-800'}`}>
@@ -36,7 +75,7 @@ export const AuditoriaGradoView: React.FC<AuditoriaGradoViewProps> = ({
               Estatus: Alumno Regular Activo
             </span>
             <span className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[11px] font-mono">
-              Plan: 8 Semestres (164 Créditos)
+              Plan: {TOTAL_SEMESTRES.length} Semestres ({TOTAL_CREDITS} Créditos)
             </span>
           </div>
         </div>
@@ -118,7 +157,7 @@ export const AuditoriaGradoView: React.FC<AuditoriaGradoViewProps> = ({
             <h3 className="text-sm font-semibold text-white">Distribución de Créditos por Área de Conocimiento</h3>
             <p className="text-xs text-zinc-400">Requerimientos reglamentarios para obtención de grado académico</p>
           </div>
-          <span className="text-xs font-mono text-zinc-400">Total: 164 Créditos</span>
+          <span className="text-xs font-mono text-zinc-400">Total: {totalDegreeCredits} Créditos</span>
         </div>
 
         <div className="space-y-4">
@@ -171,45 +210,30 @@ export const AuditoriaGradoView: React.FC<AuditoriaGradoViewProps> = ({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded-xl bg-[#16181d] border border-emerald-500/30 flex items-start gap-3">
-            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-white">Cadena Matemática & Vectorial</p>
-              <p className="text-zinc-400 text-[11px] mt-0.5">
-                Cálculo Diferencial (MAT-101) y Álgebra Lineal (MAT-102) aprobados. Vía libre para Computación Gráfica.
-              </p>
+          {cadenas.map((cadena) => (
+            <div
+              key={cadena.titulo}
+              className={`p-3 rounded-xl bg-[#16181d] flex items-start gap-3 ${
+                cadena.aprobada
+                  ? 'border-emerald-500/30'
+                  : cadena.enCurso
+                    ? 'border-cyan-500/30'
+                    : 'border-white/[0.05]'
+              } ${cadena.aprobada || cadena.enCurso ? '' : 'opacity-80'}`}
+            >
+              {cadena.aprobada ? (
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              ) : cadena.enCurso ? (
+                <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              ) : (
+                <BookOpen className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <p className="font-semibold text-white">{cadena.titulo}</p>
+                <p className="text-zinc-400 text-[11px] mt-0.5">{cadena.detalle}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#16181d] border border-emerald-500/30 flex items-start gap-3">
-            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-white">Cadena Algorítmica Troncal</p>
-              <p className="text-zinc-400 text-[11px] mt-0.5">
-                Prog. Básica I (9.4) y Prog. Básica II (8.8) aprobados. Requisitos satisfechos para POO y Estructuras.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#16181d] border border-cyan-500/30 flex items-start gap-3">
-            <Sparkles className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-white">Pipeline de Gráficos por Computadora</p>
-              <p className="text-zinc-400 text-[11px] mt-0.5">
-                Computación Gráfica (MUL-201) en pre-matrícula activa. Habilitará Render 3D & Shaders para Semestre 4.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#16181d] border border-white/[0.05] flex items-start gap-3 opacity-80">
-            <BookOpen className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-zinc-300">Tesis y Proyecto de Titulación</p>
-              <p className="text-zinc-500 text-[11px] mt-0.5">
-                Requiere 120 créditos acumulados. Programado para habilitación a partir de Semestre 7.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

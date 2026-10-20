@@ -15,12 +15,22 @@ export const CuellosBotellaModal: React.FC<CuellosBotellaModalProps> = ({
   courses,
   onSelectCourse
 }) => {
-  const [selectedDelayCourse, setSelectedDelayCourse] = useState<string>('CC-201');
-
   if (!isOpen) return null;
 
-  // Identify bottleneck courses
+  // Identify bottleneck courses: those unlocking two or more branches of the plan.
   const bottleneckCourses = courses.filter((c) => c.isBottleneck || c.unlocks.length >= 2);
+
+  // Materia usada en el simulador de impacto: la de mayor fan-out de la base de datos.
+  const materiaCritica = [...bottleneckCourses].sort(
+    (a, b) => b.unlocks.length - a.unlocks.length
+  )[0];
+
+  // Asignaturas que quedarían bloqueadas si se posterga la materia crítica.
+  const Postergadas = materiaCritica
+    ? materiaCritica.unlocks
+        .map((id) => courses.find((course) => course.id === id))
+        .filter((course): course is Course => Boolean(course))
+    : [];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
@@ -105,7 +115,8 @@ export const CuellosBotellaModal: React.FC<CuellosBotellaModalProps> = ({
               Simulador de Impacto por Postergación
             </h4>
             <p className="text-[11px] text-zinc-400">
-              ¿Qué ocurre si no matriculo <strong>POO (CC-201)</strong> o <strong>Computación Gráfica (MUL-201)</strong> este ciclo?
+              ¿Qué ocurre si no matriculo <strong>{materiaCritica?.title ?? 'la materia crítica'}</strong>{' '}
+              (<strong>{materiaCritica?.code ?? '—'}</strong>) este ciclo?
             </p>
 
             <div className="p-3 rounded-lg bg-[#111215] border border-rose-500/30 space-y-2">
@@ -114,7 +125,11 @@ export const CuellosBotellaModal: React.FC<CuellosBotellaModalProps> = ({
                 <span className="font-mono text-zinc-400 text-[10px]">+1 Semestre Proyectado</span>
               </div>
               <p className="text-[11px] text-zinc-300">
-                Si postergas POO este ciclo 2025-1, Arquitectura de Software quedará bloqueada en 2025-2, retrasando Sistemas Operativos y el inicio del Proyecto de Grado I a 2027.
+                {Postergadas.length > 0
+                  ? `Si postergas ${materiaCritica?.title} este ciclo, quedarán bloqueadas: ${Postergadas
+                      .map((course) => `${course.title} (Semestre ${course.semester})`)
+                      .join(', ')}.`
+                  : 'No hay asignaturas dependientes registradas en la base de datos para esta materia.'}
               </p>
             </div>
           </div>

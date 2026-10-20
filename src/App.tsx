@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { INITIAL_COURSES } from './data/curriculumData';
+import { INITIAL_COURSES, TOTAL_CREDITS } from './data/curriculumData';
 import { Course } from './types/curriculum';
 import { TopHeader } from './components/TopHeader';
 import { LeftDock } from './components/LeftDock';
@@ -18,22 +18,15 @@ export default function App() {
   const [courses, setCourses] = useState<Course[]>(INITIAL_COURSES);
   const [activeView, setActiveView] = useState<'canvas' | 'malla' | 'auditoria'>('canvas');
 
-  // Currently inspected course (CC-201 by default, matching Image 1)
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('CC-201');
+  // Abrir la malla con una materia que se pueda aprobar y consultar.
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(
+    () =>
+      INITIAL_COURSES.find(
+        (course) => course.status !== 'Bloqueado' && course.prerequisites.length === 0
+      )?.id ?? INITIAL_COURSES[0].id
+  );
 
-  // Enrolled courses for upcoming term (matches exact 14 CR in Image 1: CC-201 (4), MUL-201 (4), HUM-101 (2), CC-202 (4) = 14 CR)
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([
-    'CC-201',
-    'MUL-201',
-    'HUM-101',
-    'CC-202'
-  ]);
-
-  // Suggested by DAG algorithm
-  const [suggestedCourseIds, setSuggestedCourseIds] = useState<string[]>([
-    'CC-201',
-    'MUL-201'
-  ]);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
   // Inspector Sidebar Open
   const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
@@ -46,9 +39,6 @@ export default function App() {
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
 
-  // DAG recalculation simulation
-  const [isDagRunning, setIsDagRunning] = useState<boolean>(false);
-
   // Theme
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -57,54 +47,98 @@ export default function App() {
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [smoothCurves, setSmoothCurves] = useState<boolean>(true);
 
+  const approvedCourseIds = useMemo(
+    () => new Set(courses.filter((course) => course.status === 'Aprobado').map((course) => course.id)),
+    [courses]
+  );
+
+  const coursesWithPrerequisiteStatus = useMemo(
+    () =>
+      courses.map((course) => {
+        if (course.status === 'Aprobado' || course.status === 'Bloqueado') return course;
+
+        const prerequisitesSatisfied = course.prerequisites.every((id) => approvedCourseIds.has(id));
+        const status: Course['status'] = prerequisitesSatisfied
+          ? enrolledCourseIds.includes(course.id)
+            ? 'Inscrito'
+            : 'Disponible'
+          : 'Bloqueado';
+        return {
+          ...course,
+          status
+        };
+      }),
+    [approvedCourseIds, courses, enrolledCourseIds]
+  );
+
   // Computed metrics
   const totalCompletedCredits = useMemo(() => {
-    return courses
+    return coursesWithPrerequisiteStatus
       .filter((c) => c.status === 'Aprobado')
-      .reduce((sum, c) => sum + c.credits, 0); // 42 CR
-  }, [courses]);
+      .reduce((sum, c) => sum + c.credits, 0);
+  }, [coursesWithPrerequisiteStatus]);
 
-  const totalDegreeCredits = 164;
+  const totalDegreeCredits = TOTAL_CREDITS;
 
   const enrolledCredits = useMemo(() => {
-    return courses
+    return coursesWithPrerequisiteStatus
       .filter((c) => enrolledCourseIds.includes(c.id))
-      .reduce((sum, c) => sum + c.credits, 0); // 14 CR
-  }, [courses, enrolledCourseIds]);
+      .reduce((sum, c) => sum + c.credits, 0);
+  }, [coursesWithPrerequisiteStatus, enrolledCourseIds]);
 
   const selectedCourse = useMemo(() => {
-    return courses.find((c) => c.id === selectedCourseId) || courses[0];
-  }, [courses, selectedCourseId]);
+    return coursesWithPrerequisiteStatus.find((c) => c.id === selectedCourseId) || coursesWithPrerequisiteStatus[0];
+  }, [coursesWithPrerequisiteStatus, selectedCourseId]);
 
   const enrolledCourses = useMemo(() => {
-    return courses.filter((c) => enrolledCourseIds.includes(c.id));
-  }, [courses, enrolledCourseIds]);
+    return coursesWithPrerequisiteStatus.filter((c) => enrolledCourseIds.includes(c.id));
+  }, [coursesWithPrerequisiteStatus, enrolledCourseIds]);
 
   const availableCoursesToEnroll = useMemo(() => {
-    return courses.filter((c) => c.status !== 'Aprobado' && c.status !== 'Bloqueado');
-  }, [courses]);
+    return coursesWithPrerequisiteStatus.filter((c) => c.status === 'Disponible');
+  }, [coursesWithPrerequisiteStatus]);
 
-  // Toggle enroll course
   const handleToggleEnrollCourse = (courseId: string) => {
     setEnrolledCourseIds((prev) => {
       if (prev.includes(courseId)) {
         return prev.filter((id) => id !== courseId);
-      } else {
-        return [...prev, courseId];
       }
+      const course = coursesWithPrerequisiteStatus.find((item) => item.id === courseId);
+      return course?.status === 'Disponible' ? [...prev, courseId] : prev;
     });
   };
 
-  // Run DAG Algorithm
-  const handleRunDAG = () => {
-    setIsDagRunning(true);
-    setTimeout(() => {
-      setIsDagRunning(false);
-      // Topological optimization selects primary critical paths
-      setSuggestedCourseIds(['CC-201', 'MUL-201', 'CC-202']);
-      setSelectedCourseId('CC-201');
-      setIsInspectorOpen(true);
-    }, 850);
+  const handleToggleCourseApproval = (courseId: string) => {
+    const course = coursesWithPrerequisiteStatus.find((item) => item.id === courseId);
+    if (
+      !course ||
+      (course.status !== 'Aprobado' && course.status !== 'Disponible' && course.status !== 'Inscrito')
+    ) {
+      return;
+    }
+
+    setCourses((previous) =>
+      previous.map((item) =>
+        item.id === courseId
+          ? { ...item, status: item.status === 'Aprobado' ? 'Disponible' : 'Aprobado' }
+          : item
+      )
+    );
+    if (course.status === 'Aprobado') {
+      const approvedAfterRevert = new Set(
+        courses.filter((item) => item.id !== courseId && item.status === 'Aprobado').map((item) => item.id)
+      );
+      setEnrolledCourseIds((previous) =>
+        previous.filter((id) => {
+          const enrolledCourse = courses.find((item) => item.id === id);
+          return enrolledCourse?.prerequisites.every((prerequisiteId) =>
+            approvedAfterRevert.has(prerequisiteId)
+          );
+        })
+      );
+    } else {
+      setEnrolledCourseIds((previous) => previous.filter((id) => id !== courseId));
+    }
   };
 
   // Apply diagnostic settings
@@ -114,23 +148,24 @@ export default function App() {
     intensityWorkload: 'light' | 'standard' | 'intense';
     trackFocus: 'multimedia' | 'software' | 'gamedev';
   }) => {
-    setIsDagRunning(true);
     setTimeout(() => {
-      setIsDagRunning(false);
+      // La carga de créditos se toma del semestre solicitado, respetando el
+      // límite de créditos según la intensidad elegida.
+      const limite = settings.intensityWorkload === 'light' ? 12 : settings.intensityWorkload === 'intense' ? 18 : 14;
+      const delSemestre = coursesWithPrerequisiteStatus.filter(
+        (course) => course.semester === settings.semester && course.status === 'Disponible'
+      );
 
-      if (settings.intensityWorkload === 'light') {
-        setEnrolledCourseIds(['CC-201', 'MUL-201', 'HUM-101']); // 10-12 CR
-      } else if (settings.intensityWorkload === 'intense') {
-        setEnrolledCourseIds(['CC-201', 'MUL-201', 'CC-202', 'HUM-101', 'MAT-202']); // 18 CR
-      } else {
-        setEnrolledCourseIds(['CC-201', 'MUL-201', 'HUM-101', 'CC-202']); // 14 CR
+      let acumulado = 0;
+      const seleccionadas: string[] = [];
+      for (const course of delSemestre) {
+        if (acumulado + course.credits > limite) continue;
+        seleccionadas.push(course.id);
+        acumulado += course.credits;
       }
 
-      if (settings.trackFocus === 'multimedia') {
-        setSelectedCourseId('MUL-201');
-      } else {
-        setSelectedCourseId('CC-201');
-      }
+      setEnrolledCourseIds(seleccionadas);
+      if (seleccionadas.length > 0) setSelectedCourseId(seleccionadas[0]);
       setActiveView('canvas');
     }, 700);
   };
@@ -142,8 +177,6 @@ export default function App() {
         activeView={activeView}
         onSelectView={setActiveView}
         onOpenDiagnostic={() => setIsDiagnosticModalOpen(true)}
-        onRunDAG={handleRunDAG}
-        isDagRunning={isDagRunning}
         enrolledCredits={enrolledCredits}
         onOpenPreMatricula={() => setIsPreMatriculaModalOpen(true)}
         onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
@@ -156,6 +189,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden relative" data-purpose="workspace-body">
         {/* Left Floating Dock */}
         <LeftDock
+          courses={coursesWithPrerequisiteStatus}
           onSelectView={setActiveView}
           onOpenBottlenecks={() => setIsBottlenecksModalOpen(true)}
           onOpenHistory={() => setIsHistoryModalOpen(true)}
@@ -167,22 +201,20 @@ export default function App() {
         {/* Center Content View Switcher */}
         {activeView === 'canvas' && (
           <CanvasArea
-            courses={courses}
+            courses={coursesWithPrerequisiteStatus}
             selectedCourseId={selectedCourseId}
             onSelectCourse={(id) => {
               setSelectedCourseId(id);
               if (!isInspectorOpen) setIsInspectorOpen(true);
             }}
             enrolledCourseIds={enrolledCourseIds}
-            suggestedCourseIds={suggestedCourseIds}
             theme={theme}
-            onToggleEnrollCourse={handleToggleEnrollCourse}
           />
         )}
 
         {activeView === 'malla' && (
           <MallaFlujoView
-            courses={courses}
+            courses={coursesWithPrerequisiteStatus}
             selectedCourseId={selectedCourseId}
             onSelectCourse={(id) => {
               setSelectedCourseId(id);
@@ -195,6 +227,8 @@ export default function App() {
 
         {activeView === 'auditoria' && (
           <AuditoriaGradoView
+            courses={coursesWithPrerequisiteStatus}
+            enrolledCourseIds={enrolledCourseIds}
             totalCompletedCredits={totalCompletedCredits}
             totalDegreeCredits={totalDegreeCredits}
             enrolledCredits={enrolledCredits}
@@ -207,9 +241,10 @@ export default function App() {
           isOpen={isInspectorOpen}
           onClose={() => setIsInspectorOpen(false)}
           selectedCourse={selectedCourse}
-          allCourses={courses}
+          allCourses={coursesWithPrerequisiteStatus}
           enrolledCourseIds={enrolledCourseIds}
           onToggleEnrollCourse={handleToggleEnrollCourse}
+          onToggleCourseApproval={handleToggleCourseApproval}
           totalCompletedCredits={totalCompletedCredits}
           totalDegreeCredits={totalDegreeCredits}
           enrolledCredits={enrolledCredits}
@@ -239,7 +274,7 @@ export default function App() {
       <CuellosBotellaModal
         isOpen={isBottlenecksModalOpen}
         onClose={() => setIsBottlenecksModalOpen(false)}
-        courses={courses}
+        courses={coursesWithPrerequisiteStatus}
         onSelectCourse={(id) => {
           setSelectedCourseId(id);
           setActiveView('canvas');
@@ -250,13 +285,13 @@ export default function App() {
       <HistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        courses={courses}
+        courses={coursesWithPrerequisiteStatus}
       />
 
       <CoursesCatalogModal
         isOpen={isCatalogModalOpen}
         onClose={() => setIsCatalogModalOpen(false)}
-        courses={courses}
+        courses={coursesWithPrerequisiteStatus}
         onSelectCourse={(id) => {
           setSelectedCourseId(id);
           setActiveView('canvas');

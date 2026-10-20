@@ -1,0 +1,998 @@
+[
+  {
+    "id": "multimedia-comunicacion-oral-y-escrita-i",
+    "nombre": "Comunicación oral y escrita I",
+    "nombre_normalizado": "comunicacion oral y escrita i",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 1,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-fundamentos-de-programacion",
+    "nombre": "Fundamentos de Programación",
+    "nombre_normalizado": "fundamentos de programacion",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-i",
+    "nombre": "Humanística I",
+    "nombre_normalizado": "humanistica i",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-ii",
+    "nombre": "Humanística II",
+    "nombre_normalizado": "humanistica ii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-i",
+    "nombre": "INGLES I",
+    "nombre_normalizado": "ingles i",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-introduccion-a-la-ingenieria",
+    "nombre": "Introducción a la Ingeniería",
+    "nombre_normalizado": "introduccion a la ingenieria",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-matematicas-discretas",
+    "nombre": "Matemáticas Discretas",
+    "nombre_normalizado": "matematicas discretas",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-matematicas-fundamentales",
+    "nombre": "MATEMÁTICAS FUNDAMENTALES",
+    "nombre_normalizado": "matematicas fundamentales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 1
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-calculo-i",
+    "nombre": "Cálculo I",
+    "nombre_normalizado": "calculo i",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 4,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-matematicas-fundamentales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-curso-formativo-bienestar-institucional-i",
+    "nombre": "Curso Formativo Bienestar Institucional I",
+    "nombre_normalizado": "curso formativo bienestar institucional i",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 1,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-fisica-mecanica",
+    "nombre": "Física Mecánica",
+    "nombre_normalizado": "fisica mecanica",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 4,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-matematicas-fundamentales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-iii",
+    "nombre": "Humanística III",
+    "nombre_normalizado": "humanistica iii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-ii",
+    "nombre": "INGLÉS II",
+    "nombre_normalizado": "ingles ii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-i"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-programacion-orientada-a-objetos",
+    "nombre": "Programación Orientada a Objetos",
+    "nombre_normalizado": "programacion orientada a objetos",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-fundamentos-de-programacion"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-taller-multimedia",
+    "nombre": "Taller Multimedia",
+    "nombre_normalizado": "taller multimedia",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 2
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-algebra-lineal",
+    "nombre": "Algebra Lineal",
+    "nombre_normalizado": "algebra lineal",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-matematicas-fundamentales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-calculo-ii",
+    "nombre": "Cálculo II",
+    "nombre_normalizado": "calculo ii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-calculo-i"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-curso-de-bienestar-institucional-ii",
+    "nombre": "Curso de Bienestar Institucional II",
+    "nombre_normalizado": "curso de bienestar institucional ii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 1,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-diseno-para-medios-digitales",
+    "nombre": "Diseño para Medios Digitales",
+    "nombre_normalizado": "diseno para medios digitales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-guion-para-medios-digitales",
+    "nombre": "Guión para Medios Digitales",
+    "nombre_normalizado": "guion para medios digitales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-comunicacion-oral-y-escrita-i"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-iv",
+    "nombre": "Humanística  IV",
+    "nombre_normalizado": "humanistica iv",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-v",
+    "nombre": "Humanística V",
+    "nombre_normalizado": "humanistica v",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-iii",
+    "nombre": "INGLES III",
+    "nombre_normalizado": "ingles iii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 3
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-ii"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-computacion-grafica",
+    "nombre": "Computación Gráfica",
+    "nombre_normalizado": "computacion grafica",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-programacion-orientada-a-objetos"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-comunicacion-oral-y-escrita-ii",
+    "nombre": "Comunicación oral y escrita II",
+    "nombre_normalizado": "comunicacion oral y escrita ii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 1,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-comunicacion-oral-y-escrita-i"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-curso-de-bienestar-institucional-iii",
+    "nombre": "Curso de Bienestar Institucional III",
+    "nombre_normalizado": "curso de bienestar institucional iii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 1,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-dibujo-para-multimedia",
+    "nombre": "Dibujo para Multimedia",
+    "nombre_normalizado": "dibujo para multimedia",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-diseno-para-medios-digitales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-vi",
+    "nombre": "Humanística VI",
+    "nombre_normalizado": "humanistica vi",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-iv",
+    "nombre": "INGLES IV",
+    "nombre_normalizado": "ingles iv",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-iii"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-matematicas-especiales",
+    "nombre": "Matemáticas Especiales",
+    "nombre_normalizado": "matematicas especiales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-calculo-ii"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-probabilidad-y-estadistica",
+    "nombre": "Probabilidad y Estadística",
+    "nombre_normalizado": "probabilidad y estadistica",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-calculo-ii"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-taller-de-video-y-fotografia",
+    "nombre": "Taller de Video y Fotografía",
+    "nombre_normalizado": "taller de video y fotografia",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 4
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-guion-para-medios-digitales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-audio-digital",
+    "nombre": "Audio Digital",
+    "nombre_normalizado": "audio digital",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-bases-de-datos",
+    "nombre": "Bases de Datos",
+    "nombre_normalizado": "bases de datos",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 4,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-programacion-orientada-a-objetos"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-curso-de-bienestar-institucional-iv",
+    "nombre": "Curso de Bienestar Institucional IV",
+    "nombre_normalizado": "curso de bienestar institucional iv",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 1,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-electiva-en-ingenieria-s5",
+    "nombre": "ELECTIVA EN INGENIERÍA",
+    "nombre_normalizado": "electiva en ingenieria",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 2,
+    "repetido": true,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-fundamentos-de-redes",
+    "nombre": "Fundamentos de Redes",
+    "nombre_normalizado": "fundamentos de redes",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-humanistica-vii",
+    "nombre": "Humanística VII",
+    "nombre_normalizado": "humanistica vii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-v",
+    "nombre": "INGLES V",
+    "nombre_normalizado": "ingles v",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-iv"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-taller-en-animacion-2d",
+    "nombre": "Taller en Animación 2D",
+    "nombre_normalizado": "taller en animacion 2d",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 5
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-dibujo-para-multimedia"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-circuitos-digitales",
+    "nombre": "Circuitos Digitales",
+    "nombre_normalizado": "circuitos digitales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-calculo-ii"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-desarrollo-web",
+    "nombre": "Desarrollo Web",
+    "nombre_normalizado": "desarrollo web",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-bases-de-datos"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-electiva-en-ingenieria-s6",
+    "nombre": "ELECTIVA EN INGENIERÍA",
+    "nombre_normalizado": "electiva en ingenieria",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 2,
+    "repetido": true,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-gestion-de-proyectos",
+    "nombre": "Gestión de Proyectos",
+    "nombre_normalizado": "gestion de proyectos",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-vi",
+    "nombre": "INGLES VI",
+    "nombre_normalizado": "ingles vi",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-v"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-modelado-3d",
+    "nombre": "Modelado 3D",
+    "nombre_normalizado": "modelado 3d",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-taller-en-animacion-2d"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-procesamiento-de-senales-digitales",
+    "nombre": "PROCESAMIENTO DE SEÑALES DIGITALES",
+    "nombre_normalizado": "procesamiento de senales digitales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 6
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-programacion-orientada-a-objetos",
+      "multimedia-matematicas-especiales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-animacon-e-integracion-3d",
+    "nombre": "Animacón e Integración 3D",
+    "nombre_normalizado": "animacon e integracion 3d",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 7
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-modelado-3d"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-edicion-y-post-produccion-de-video",
+    "nombre": "Edición y Post Producción de Video",
+    "nombre_normalizado": "edicion y post produccion de video",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 7
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-audio-digital"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-electronica-para-multimedia",
+    "nombre": "Electrónica para Multimedia",
+    "nombre_normalizado": "electronica para multimedia",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 7
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-circuitos-digitales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-vii",
+    "nombre": "INGLES VII",
+    "nombre_normalizado": "ingles vii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 7
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-vi"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-procesamiento-de-imagenes",
+    "nombre": "PROCESAMIENTO DE IMÁGENES",
+    "nombre_normalizado": "procesamiento de imagenes",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 7
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-procesamiento-de-senales-digitales"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-proyecto-en-ingenieria",
+    "nombre": "Proyecto en Ingeniería",
+    "nombre_normalizado": "proyecto en ingenieria",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 7
+      }
+    ],
+    "creditos": 4,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-modelado-3d",
+      "multimedia-desarrollo-web",
+      "multimedia-gestion-de-proyectos"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-diseno-de-experiencias-interactivas",
+    "nombre": "Diseño de Experiencias Interactivas",
+    "nombre_normalizado": "diseno de experiencias interactivas",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 8
+      }
+    ],
+    "creditos": 3,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-desarrollo-web"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-electiva-en-ingenieria-s8",
+    "nombre": "ELECTIVA EN INGENIERÍA",
+    "nombre_normalizado": "electiva en ingenieria",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 8
+      }
+    ],
+    "creditos": 2,
+    "repetido": true,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-ingles-viii",
+    "nombre": "INGLES VIII",
+    "nombre_normalizado": "ingles viii",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 8
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-ingles-vii"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-legislacion-para-contenidos-digitales",
+    "nombre": "Legislación para Contenidos Digitales",
+    "nombre_normalizado": "legislacion para contenidos digitales",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 8
+      }
+    ],
+    "creditos": 2,
+    "repetido": false,
+    "prerrequisitos": [],
+    "estado": "pendiente",
+    "nota": null
+  },
+  {
+    "id": "multimedia-practica-profesional",
+    "nombre": "Práctica profesional",
+    "nombre_normalizado": "practica profesional",
+    "programas": [
+      {
+        "programa": "multimedia",
+        "semestre": 8
+      }
+    ],
+    "creditos": 6,
+    "repetido": false,
+    "prerrequisitos": [
+      "multimedia-modelado-3d",
+      "multimedia-desarrollo-web"
+    ],
+    "estado": "pendiente",
+    "nota": null
+  }
+]

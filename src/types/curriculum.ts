@@ -31,6 +31,8 @@ export interface Course {
   syllabus?: string[];
   schedule?: string;
   professor?: string;
+  repeatable?: boolean;
+  program?: string;
 }
 
 export interface GraphEdge {

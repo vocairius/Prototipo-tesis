@@ -1,509 +1,269 @@
-import { Course, GraphEdge, DegreeAuditCategory } from '../types/curriculum';
+import multimediaCourses from './cursos_multimedia.json';
+import { Course, CourseType, DegreeAuditCategory } from '../types/curriculum';
 
-export const INITIAL_COURSES: Course[] = [
-  // --- SEMESTER 1 ---
-  {
-    id: 'CC-101',
-    code: 'CC-101',
-    shortCode: 'P1',
-    title: 'Prog. Básica I',
-    semester: 1,
-    credits: 4,
-    type: 'Obligatorio',
-    status: 'Aprobado',
-    grade: '9.4',
-    description: 'Fundamentos de algoritmia, sintaxis modular, control de flujo y estructuras de memoria básicas en C/C++.',
-    prerequisites: [],
-    unlocks: ['CC-102'],
-    tag: 'OK',
-    position: { x: 40, y: 130 },
-    colorTheme: 'emerald',
-    syllabus: ['Algoritmos y complejidad básica', 'Tipos primitivos y apuntadores', 'Estructuras de control', 'Funciones y modularidad'],
-    professor: 'Dra. Elena Valenzuela',
-    schedule: 'Lun / Mié 08:00 - 10:00'
-  },
-  {
-    id: 'MAT-101',
-    code: 'MAT-101',
-    shortCode: 'CD',
-    title: 'Cálculo Diferencial',
-    semester: 1,
-    credits: 4,
-    type: 'Ciencias Básicas',
-    status: 'Aprobado',
-    grade: '8.5',
-    description: 'Límites, continuidad, derivación de funciones reales de una variable y aplicaciones de optimización.',
-    prerequisites: [],
-    unlocks: ['MAT-102', 'MAT-201'],
-    tag: 'OK',
-    position: { x: 40, y: 20 },
-    colorTheme: 'cyan',
-    syllabus: ['Topología de la recta real', 'Cálculo de límites', 'Regla de la cadena y derivación implícita', 'Máximos y mínimos'],
-    professor: 'Dr. Roberto Mendoza',
-    schedule: 'Mar / Jue 10:00 - 12:00'
-  },
-  {
-    id: 'DIS-101',
-    code: 'DIS-101',
-    shortCode: 'DV',
-    title: 'Diseño Visual & Semiótica',
-    semester: 1,
-    credits: 3,
-    type: 'Núcleo Multimedia',
-    status: 'Aprobado',
-    grade: '9.0',
-    description: 'Composición gráfica, teoría del color, semiótica de la imagen y fundamentos de tipografía digital.',
-    prerequisites: [],
-    unlocks: ['MUL-201'],
-    tag: 'OK',
-    position: { x: 40, y: 520 },
-    colorTheme: 'violet',
-    syllabus: ['Gestalt y percepción visual', 'Teoría del color sustractivo y aditivo', 'Composición y retículas', 'Semiótica audiovisual'],
-    professor: 'MSc. Claudia Morales',
-    schedule: 'Vie 14:00 - 18:00'
-  },
+/* ------------------------------------------------------------------
+ * Datos base: el JSON de la base de datos es la única fuente de verdad.
+ * ------------------------------------------------------------------ */
 
-  // --- SEMESTER 2 ---
-  {
-    id: 'CC-102',
-    code: 'CC-102',
-    shortCode: 'P2',
-    title: 'Prog. Básica II',
-    semester: 2,
-    credits: 4,
-    type: 'Obligatorio',
-    status: 'Aprobado',
-    grade: '8.8',
-    description: 'Punteros, estructuras de datos lineales en C++, concurrencia básica y gestión manual de recursos de memoria.',
-    prerequisites: ['CC-101'],
-    unlocks: ['CC-201', 'CC-202', 'MUL-201'],
-    tag: 'OK',
-    position: { x: 370, y: 130 },
-    colorTheme: 'cyan',
-    syllabus: ['Manejo dinámico de memoria y Heap vs Stack', 'Listas enlazadas, pilas y colas', 'Recursión y backtracking', 'Templates en C++'],
-    professor: 'Dr. Fernando Salazar',
-    schedule: 'Mar / Jue 08:00 - 10:00'
-  },
-  {
-    id: 'MAT-102',
-    code: 'MAT-102',
-    shortCode: 'AL',
-    title: 'Álgebra Lineal',
-    semester: 2,
-    credits: 3,
-    type: 'Ciencias Básicas',
-    status: 'Aprobado',
-    grade: '7.9',
-    description: 'Espacios vectoriales, matrices de transformación afín, autovalores, autovectores y descomposición SVD.',
-    prerequisites: ['MAT-101'],
-    unlocks: ['MUL-201', 'MUL-302', 'CC-202', 'MAT-202'],
-    isBottleneck: true,
-    bottleneckReason: 'Bloquea 4 asignaturas críticas en la trayectoria multimedia y algoritmos avanzados.',
-    tag: 'CRÍTICO',
-    position: { x: 40, y: 330 },
-    colorTheme: 'amber',
-    syllabus: ['Espacios y subespacios vectoriales', 'Matrices de transformación afín 2D y 3D', 'Determinantes e inversa de Gauss-Jordan', 'Autovalores y diagonalización'],
-    professor: 'Dra. Mariana Rios',
-    schedule: 'Mié / Vie 10:00 - 12:00'
-  },
-  {
-    id: 'MAT-201',
-    code: 'MAT-201',
-    shortCode: 'CI',
-    title: 'Cálculo Integral & Series',
-    semester: 2,
-    credits: 4,
-    type: 'Ciencias Básicas',
-    status: 'Aprobado',
-    grade: '8.2',
-    description: 'Teorema fundamental del cálculo, técnicas avanzadas de integración, series infinitas de Taylor y Fourier.',
-    prerequisites: ['MAT-101'],
-    unlocks: ['MAT-202'],
-    tag: 'OK',
-    position: { x: 370, y: 20 },
-    colorTheme: 'cyan',
-    syllabus: ['Métodos de integración', 'Integrales impropias', 'Series de potencias y Taylor', 'Aplicaciones geométricas de volumen'],
-    professor: 'Dr. Roberto Mendoza',
-    schedule: 'Lun / Mié 12:00 - 14:00'
-  },
+interface JsonCourse {
+  id: string;
+  nombre: string;
+  nombre_normalizado: string;
+  programas: { programa: string; semestre: number }[];
+  creditos: number;
+  repetido: boolean;
+  prerrequisitos: string[];
+  estado: string;
+  nota: number | null;
+}
 
-  // --- SEMESTER 3 ---
+const rawCourses = multimediaCourses as unknown as JsonCourse[];
+
+/* ------------------------------------------------------------------
+ * Clasificación por área de conocimiento.
+ * ------------------------------------------------------------------ */
+
+export const AREA_CIENCIAS_BASICAS = 'Ciencias Básicas (Matemáticas & Física)';
+export const AREA_NUCLEO_OBLIGATORIO = 'Núcleo Obligatorio (Computación & Software)';
+export const AREA_NUCLEO_MULTIMEDIA = 'Núcleo Multimedia & Gráficos';
+export const AREA_HUMANIDADES = 'Humanidades, Gestión & Ética';
+export const AREA_ELECTIVAS = 'Electivas de Énfasis / Especialidad';
+
+/** Patrones léxicos por área, evaluados sobre el nombre normalizado. */
+const AREA_POR_MATERIA: { area: string; patrones: RegExp[] }[] = [
   {
-    id: 'CC-201',
-    code: 'CC-201',
-    shortCode: 'PO',
-    title: 'Prog. Orientada a Objetos',
-    semester: 3,
-    credits: 4,
-    type: 'Núcleo Obligatorio',
-    status: 'Sugerido',
-    grade: 'Pendiente',
-    description: 'Paradigmas de objetos, patrones GoF, abstracción, herencia múltiple y polimorfismo dinámico en Rust/C++.',
-    prerequisites: ['CC-102'],
-    unlocks: ['CC-301'],
-    tag: 'Ruta',
-    priority: 'Alta',
-    position: { x: 690, y: 230 },
-    colorTheme: 'emerald',
-    syllabus: ['Principios SOLID y diseño desacoplado', 'Patrones de creación, estructurales y de comportamiento', 'Herencia vs Composición', 'RTTI y polimorfismo'],
-    professor: 'Ing. Javier Gutierrez',
-    schedule: 'Lun / Mié 14:00 - 16:00'
+    area: AREA_CIENCIAS_BASICAS,
+    patrones: [
+      /matematica/,
+      /matematicas/,
+      /calculo/,
+      /algebra/,
+      /estadistica/,
+      /probabilidad/,
+      /fisica/,
+      /discretas/
+    ]
   },
   {
-    id: 'CC-202',
-    code: 'CC-202',
-    shortCode: 'ED',
-    title: 'Estructura de Datos',
-    semester: 3,
-    credits: 4,
-    type: 'Obligatorio',
-    status: 'Disponible',
-    grade: 'Sin cursar',
-    description: 'Árboles autobalanceados (AVL, Red-Black), grafos dirigidos, tablas hash concurrentes y análisis amortizado.',
-    prerequisites: ['CC-102'],
-    unlocks: ['CC-302'],
-    tag: 'Postergable',
-    priority: 'Media',
-    position: { x: 690, y: 50 },
-    colorTheme: 'zinc',
-    syllabus: ['Árboles binarios y balanceo AVL', 'Estructuras de grafos (Adyacencia, Dijkstra, A*)', 'Tablas de dispersión hash con colisiones', 'Heaps binarios y colas de prioridad'],
-    professor: 'Dr. Fernando Salazar',
-    schedule: 'Mar / Jue 14:00 - 16:00'
+    area: AREA_NUCLEO_OBLIGATORIO,
+    patrones: [
+      /programacion/,
+      /computacion/,
+      /bases de datos/,
+      /redes/,
+      /desarrollo web/,
+      /circuitos/,
+      /electronica/,
+      /introduccion a la ingenieria/
+    ]
   },
   {
-    id: 'MUL-201',
-    code: 'MUL-201',
-    shortCode: 'CG',
-    title: 'Computación Gráfica',
-    semester: 3,
-    credits: 4,
-    type: 'Núcleo Multimedia',
-    status: 'Inscrito',
-    grade: 'Pendiente',
-    description: 'Pipeline de rasterización moderna, shaders en GLSL/WebGL, cámaras virtuales y matrices de proyección espacial.',
-    prerequisites: ['MAT-102', 'CC-102'],
-    unlocks: ['MUL-302', 'MUL-303'],
-    tag: 'Ruta',
-    priority: 'Alta',
-    position: { x: 690, y: 370 },
-    colorTheme: 'violet',
-    syllabus: ['Pipeline de render programable', 'Matrices MVP (Model-View-Projection)', 'Shaders de vértices y fragmentos en GLSL', 'Iluminación Blinn-Phong y texturizado'],
-    professor: 'MSc. Gabriel Arrieta',
-    schedule: 'Mar / Jue 16:00 - 18:00'
+    area: AREA_NUCLEO_MULTIMEDIA,
+    patrones: [
+      /audio/,
+      /video/,
+      /animac/,
+      /modelado/,
+      /dibujo/,
+      /grafica/,
+      /multimedia/,
+      /senales/,
+      /imagenes/,
+      /diseno/,
+      /guion/,
+      /taller/,
+      /post produccion/
+    ]
   },
   {
-    id: 'HUM-101',
-    code: 'HUM-101',
-    shortCode: 'ET',
-    title: 'Ética y Propiedad Intelectual',
-    semester: 3,
-    credits: 2,
-    type: 'Humanidades',
-    status: 'Inscrito',
-    grade: 'Pendiente',
-    description: 'Legislación sobre patentes de software, licencias open-source, ética de algoritmos e impacto social digital.',
-    prerequisites: [],
+    area: AREA_HUMANIDADES,
+    patrones: [
+      /humanistica/,
+      /ingles/,
+      /comunicacion/,
+      /gestion/,
+      /etica/,
+      /legislacion/,
+      /proyecto/,
+      /practica/,
+      /bienestar/,
+      /curso formativo/
+    ]
+  }
+];
+
+/** Quita tildes y signos para que los patrones léxicos apliquen siempre. */
+export const normalizar = (texto: string): string =>
+  texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .trim();
+
+/** Área de conocimiento a la que pertenece una materia, según su nombre. */
+export const areaDeMateria = (titulo: string): string => {
+  const normalizado = normalizar(titulo);
+
+  for (const { area, patrones } of AREA_POR_MATERIA) {
+    if (patrones.some((patron) => patron.test(normalizado))) return area;
+  }
+
+  return AREA_ELECTIVAS;
+};
+
+/** Etiqueta corta de cada área, usada como "Tipo" en la malla. */
+const TIPO_POR_AREA: Record<string, CourseType> = {
+  [AREA_CIENCIAS_BASICAS]: 'Ciencias Básicas',
+  [AREA_NUCLEO_OBLIGATORIO]: 'Núcleo Obligatorio',
+  [AREA_NUCLEO_MULTIMEDIA]: 'Núcleo Multimedia',
+  [AREA_HUMANIDADES]: 'Humanidades',
+  [AREA_ELECTIVAS]: 'Electiva'
+};
+
+const COLOR_POR_AREA: Record<string, string> = {
+  [AREA_CIENCIAS_BASICAS]: '#06b6d4',
+  [AREA_NUCLEO_OBLIGATORIO]: '#10b981',
+  [AREA_NUCLEO_MULTIMEDIA]: '#8b5cf6',
+  [AREA_HUMANIDADES]: '#f59e0b',
+  [AREA_ELECTIVAS]: '#ec4899'
+};
+
+/* ------------------------------------------------------------------
+ * Construcción de la malla a partir del JSON.
+ * ------------------------------------------------------------------ */
+
+const semestreDe = (course: JsonCourse): number => {
+  const semestre = course.programas.find((p) => p.programa === 'multimedia')?.semestre;
+
+  if (semestre === undefined) {
+    throw new Error(
+      `La materia ${course.id} no tiene semestre asignado al programa Multimedia.`
+    );
+  }
+
+  return semestre;
+};
+
+const indicePorSemestre = new Map<number, number>();
+const usadosShortCode = new Set<string>();
+
+export const INITIAL_COURSES: Course[] = rawCourses.map((course) => {
+  const semestre = semestreDe(course);
+  const indice = indicePorSemestre.get(semestre) ?? 0;
+  indicePorSemestre.set(semestre, indice + 1);
+
+  const titulo = course.nombre.trim().replace(/\s+/g, ' ');
+  const area = areaDeMateria(titulo);
+
+  // Código legible y único por semestre: MUL-301, MUL-302, ...
+  const code = `MUL-${semestre}${String(indice + 1).padStart(2, '0')}`;
+
+  // Siglas de dos letras para el badge del nodo, sin colisiones.
+  const palabras = course.nombre_normalizado
+    .split(/\s+/)
+    .filter(
+      (word) =>
+        word && !['de', 'del', 'la', 'las', 'el', 'los', 'y', 'en', 'para', 'i', 'ii', 'iii', 'iv'].includes(word)
+    );
+  let shortCode = palabras
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase();
+  if (!shortCode) shortCode = code.slice(-2);
+  while (usadosShortCode.has(shortCode)) {
+    shortCode = `${shortCode.slice(0, 1)}${(shortCode.charCodeAt(1) % 26) + 1}`;
+  }
+  usadosShortCode.add(shortCode);
+
+  const estado = course.estado.toLocaleLowerCase('es');
+  const status: Course['status'] =
+    estado === 'aprobado' ? 'Aprobado' : estado === 'reprobado' ? 'Bloqueado' : 'Disponible';
+
+  return {
+    id: course.id,
+    code,
+    shortCode,
+    title: titulo,
+    semester: semestre,
+    credits: course.creditos,
+    type: course.repetido ? 'Electiva' : TIPO_POR_AREA[area] ?? 'Obligatorio',
+    status,
+    grade: course.nota ?? undefined,
+    description: `${titulo} — asignatura de ${area} del Semestre ${semestre} del plan de Ingeniería en Tecnologías Multimedia.`,
+    prerequisites: course.prerrequisitos,
     unlocks: [],
-    tag: 'Ruta',
-    priority: 'Media',
-    position: { x: 690, y: 520 },
-    colorTheme: 'zinc',
-    syllabus: ['Licencias GNU, MIT, Apache y copyright digital', 'Privacidad y protección de datos GDPR', 'Dilemas éticos de IA', 'Responsabilidad profesional'],
-    professor: 'Lic. Sofía Duarte',
-    schedule: 'Vie 08:00 - 10:00'
-  },
+    repeatable: course.repetido,
+    program: 'Multimedia',
+    position: {
+      x: 40 + (semestre - 1) * 350,
+      y: 50 + indice * 145
+    },
+    colorTheme: course.repetido ? 'violet' : area === AREA_NUCLEO_MULTIMEDIA ? 'violet' : 'cyan'
+  } satisfies Course;
+});
 
-  // --- SEMESTER 4 ---
-  {
-    id: 'CC-301',
-    code: 'CC-301',
-    shortCode: 'AR',
-    title: 'Arquitectura de Soft.',
-    semester: 4,
-    credits: 3,
-    type: 'Obligatorio',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Diseño de sistemas distribuidos, microservicios, capas de dominio, arquitecturas limpias y consistencia eventual.',
-    prerequisites: ['CC-201'],
-    unlocks: ['CC-401'],
-    tag: 'Bloqueado',
-    position: { x: 1020, y: 230 },
-    colorTheme: 'zinc',
-    syllabus: ['Hexagonal Architecture & DDD', 'Sistemas de mensajería asíncronos', 'Resiliencia y patrones Circuit Breaker', 'CI/CD e infraestructura como código'],
-    professor: 'Ing. Javier Gutierrez'
-  },
-  {
-    id: 'MUL-302',
-    code: 'MUL-302',
-    shortCode: '3D',
-    title: 'Render 3D & Shaders',
-    semester: 4,
-    credits: 3,
-    type: 'Especialidad',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Raytracing acelerado por GPU, physically based rendering (PBR), shaders de cómputo y optimización espacial en tiempo real.',
-    prerequisites: ['MUL-201'],
-    unlocks: ['MUL-401'],
-    tag: 'Bloqueado',
-    position: { x: 1020, y: 370 },
-    colorTheme: 'zinc',
-    syllabus: ['Cálculo de BRDF y superficies metálicas/dieléctricas', 'Post-procesado (Bloom, HDR, Tone mapping)', 'Compute shaders para partículas masivas', 'Estructuras BVH para trazado de rayos'],
-    professor: 'MSc. Gabriel Arrieta'
-  },
-  {
-    id: 'CC-302',
-    code: 'CC-302',
-    shortCode: 'BD',
-    title: 'Bases de Datos Avanzadas',
-    semester: 4,
-    credits: 4,
-    type: 'Obligatorio',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Modelado relacional ACID, índices B-Tree, optimización de queries y almacenes NoSQL distribuidos.',
-    prerequisites: ['CC-202'],
-    unlocks: ['CC-402'],
-    tag: 'Bloqueado',
-    position: { x: 1020, y: 70 },
-    colorTheme: 'zinc',
-    syllabus: ['Normalización Boyce-Codd', 'Planes de ejecución y costos EXPLAIN', 'Transacciones y niveles de aislamiento', 'Grafos y bases de datos columnares'],
-    professor: 'Dra. Viviana Torres'
-  },
-  {
-    id: 'MAT-202',
-    code: 'MAT-202',
-    shortCode: 'PE',
-    title: 'Probabilidad y Estadística',
-    semester: 4,
-    credits: 3,
-    type: 'Ciencias Básicas',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Variables aleatorias discretas y continuas, distribuciones multivariadas, inferencia bayesiana y pruebas de hipótesis.',
-    prerequisites: ['MAT-201', 'MAT-102'],
-    unlocks: ['CC-403'],
-    tag: 'Bloqueado',
-    position: { x: 1020, y: 520 },
-    colorTheme: 'zinc',
-    syllabus: ['Teorema del límite central', 'Modelos estocásticos de Markov', 'Regresión lineal y multivariada', 'Máxima verosimilitud'],
-    professor: 'Dr. Roberto Mendoza'
-  },
+const coursesById = new Map(INITIAL_COURSES.map((course) => [course.id, course]));
 
-  // --- SEMESTER 5 ---
-  {
-    id: 'MUL-303',
-    code: 'MUL-303',
-    shortCode: 'MV',
-    title: 'Motores de Videojuegos',
-    semester: 5,
-    credits: 4,
-    type: 'Núcleo Multimedia',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Arquitectura de game engines, Entity-Component-System (ECS), bucles de simulación física y gestión de assets.',
-    prerequisites: ['MUL-201', 'CC-201'],
-    unlocks: ['MUL-402'],
-    tag: 'Bloqueado',
-    position: { x: 1350, y: 230 },
-    colorTheme: 'violet'
-  },
-  {
-    id: 'CC-401',
-    code: 'CC-401',
-    shortCode: 'SO',
-    title: 'Sistemas Operativos',
-    semester: 5,
-    credits: 4,
-    type: 'Obligatorio',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Gestión de procesos, scheduling en kernel, memoria virtual paginada y drivers de dispositivos de hardware.',
-    prerequisites: ['CC-301'],
-    unlocks: ['CC-501'],
-    tag: 'Bloqueado',
-    position: { x: 1350, y: 70 },
-    colorTheme: 'cyan'
-  },
-
-  // --- SEMESTER 6 ---
-  {
-    id: 'MUL-401',
-    code: 'MUL-401',
-    shortCode: 'VR',
-    title: 'Realidad Virtual & Inmersiva',
-    semester: 6,
-    credits: 4,
-    type: 'Especialidad',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Seguimiento 6DoF, audio binaural espacial, interacción hápica y optimización de latencia sub-20ms.',
-    prerequisites: ['MUL-302'],
-    unlocks: ['PRO-501'],
-    tag: 'Bloqueado',
-    position: { x: 1680, y: 370 },
-    colorTheme: 'violet'
-  },
-  {
-    id: 'CC-403',
-    code: 'CC-403',
-    shortCode: 'IA',
-    title: 'Inteligencia Artificial',
-    semester: 6,
-    credits: 4,
-    type: 'Obligatorio',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Búsqueda heurística, aprendizaje supervisado, redes neuronales convolucionales y modelos generativos multimodales.',
-    prerequisites: ['MAT-202', 'CC-202'],
-    unlocks: ['PRO-501'],
-    tag: 'Bloqueado',
-    position: { x: 1680, y: 150 },
-    colorTheme: 'cyan'
-  },
-
-  // --- SEMESTER 7 ---
-  {
-    id: 'PRO-501',
-    code: 'PRO-501',
-    shortCode: 'T1',
-    title: 'Proyecto de Grado I',
-    semester: 7,
-    credits: 4,
-    type: 'Núcleo Obligatorio',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Formulación metodológica, estado del arte, arquitectura preliminar y prototipo funcional de tesis multimedia.',
-    prerequisites: ['MUL-401', 'CC-403'],
-    unlocks: ['PRO-502'],
-    tag: 'Bloqueado',
-    position: { x: 2010, y: 250 },
-    colorTheme: 'amber'
-  },
-
-  // --- SEMESTER 8 ---
-  {
-    id: 'PRO-502',
-    code: 'PRO-502',
-    shortCode: 'T2',
-    title: 'Proyecto de Grado II',
-    semester: 8,
-    credits: 6,
-    type: 'Núcleo Obligatorio',
-    status: 'Bloqueado',
-    grade: 'Sin cursar',
-    description: 'Validación empírica, pruebas de carga con usuarios reales, sustentación ante jurado y publicación técnica.',
-    prerequisites: ['PRO-501'],
-    unlocks: [],
-    tag: 'Bloqueado',
-    position: { x: 2340, y: 250 },
-    colorTheme: 'emerald'
+// Retroalimenta la lista de asignaturas que desbloquea cada materia.
+for (const course of INITIAL_COURSES) {
+  for (const prerequisiteId of course.prerequisites) {
+    const prerequisite = coursesById.get(prerequisiteId);
+    if (!prerequisite) {
+      throw new Error(
+        `La materia ${course.id} referencia un prerrequisito inexistente: ${prerequisiteId}.`
+      );
+    }
+    prerequisite.unlocks.push(course.id);
   }
-];
+}
 
-export const INITIAL_EDGES: GraphEdge[] = [
-  // CC-101 -> CC-102
-  {
-    id: 'edge-101-102',
-    from: 'CC-101',
-    to: 'CC-102',
-    type: 'approved',
-    label: ''
-  },
-  // CC-102 -> CC-201 (POO)
-  {
-    id: 'edge-102-201',
-    from: 'CC-102',
-    to: 'CC-201',
-    type: 'approved',
-    label: 'Req = Aprobado (100%)'
-  },
-  // CC-102 -> CC-202 (ED)
-  {
-    id: 'edge-102-202',
-    from: 'CC-102',
-    to: 'CC-202',
-    type: 'dashed',
-    label: ''
-  },
-  // MAT-102 -> MUL-201 (Cuello de botella)
-  {
-    id: 'edge-mat102-mul201',
-    from: 'MAT-102',
-    to: 'MUL-201',
-    type: 'warning',
-    label: 'Cuello de Botella',
-    isBottleneck: true
-  },
-  // CC-102 -> MUL-201
-  {
-    id: 'edge-102-mul201',
-    from: 'CC-102',
-    to: 'MUL-201',
-    type: 'approved',
-    label: ''
-  },
-  // CC-201 -> CC-301
-  {
-    id: 'edge-201-301',
-    from: 'CC-201',
-    to: 'CC-301',
-    type: 'suggested',
-    label: 'Status = Óptimo (2025-1)'
-  },
-  // MUL-201 -> MUL-302
-  {
-    id: 'edge-mul201-302',
-    from: 'MUL-201',
-    to: 'MUL-302',
-    type: 'blocked',
-    label: ''
-  },
-  // CC-202 -> CC-302
-  {
-    id: 'edge-202-302',
-    from: 'CC-202',
-    to: 'CC-302',
-    type: 'blocked',
-    label: ''
+// Una materia es cuello de botella cuando desbloquea dos o más ramas del plan.
+for (const course of INITIAL_COURSES) {
+  if (course.unlocks.length >= 2) {
+    course.isBottleneck = true;
+    course.bottleneckReason = `Desbloquea ${course.unlocks.length} asignaturas (${course.unlocks
+      .map((id) => coursesById.get(id)?.title ?? id)
+      .join(', ')}).`;
+    course.tag = 'CRÍTICO';
+    course.priority = course.unlocks.length >= 3 ? 'Alta' : 'Media';
   }
-];
+}
 
-export const DEGREE_AUDIT_CATEGORIES: DegreeAuditCategory[] = [
-  {
-    name: 'Ciencias Básicas (Matemáticas & Física)',
-    requiredCredits: 24,
-    completedCredits: 11,
+/* ------------------------------------------------------------------
+ * Constantes del plan vigente, derivadas del propio dataset.
+ * ------------------------------------------------------------------ */
+
+/** Total de créditos del plan (suma de la base de datos). */
+export const TOTAL_CREDITS = INITIAL_COURSES.reduce((sum, course) => sum + course.credits, 0);
+
+/** Semestres que componen el plan, ordenados. */
+export const TOTAL_SEMESTRES = [...indicePorSemestre.keys()].sort((a, b) => a - b);
+
+/** Total de asignaturas del plan. */
+export const TOTAL_COURSES = INITIAL_COURSES.length;
+
+/* ------------------------------------------------------------------
+ * Distribución de créditos por área de conocimiento.
+ * ------------------------------------------------------------------ */
+
+export const DEGREE_AUDIT_CATEGORIES: DegreeAuditCategory[] = (() => {
+  const creditosPorArea = new Map<string, { requerido: number; completado: number }>();
+
+  for (const course of INITIAL_COURSES) {
+    const area = areaDeMateria(course.title);
+    const entry = creditosPorArea.get(area) ?? { requerido: 0, completado: 0 };
+    entry.requerido += course.credits;
+    if (course.status === 'Aprobado') entry.completado += course.credits;
+    creditosPorArea.set(area, entry);
+  }
+
+  return [...creditosPorArea.entries()].map(([name, { requerido, completado }]) => ({
+    name,
+    requiredCredits: requerido,
+    completedCredits: completado,
     inProgressCredits: 0,
-    color: '#06b6d4'
-  },
-  {
-    name: 'Núcleo Obligatorio (Computación & Software)',
-    requiredCredits: 64,
-    completedCredits: 12,
-    inProgressCredits: 8,
-    color: '#10b981'
-  },
-  {
-    name: 'Núcleo Multimedia & Gráficos',
-    requiredCredits: 48,
-    completedCredits: 3,
-    inProgressCredits: 4,
-    color: '#8b5cf6'
-  },
-  {
-    name: 'Humanidades, Gestión & Ética',
-    requiredCredits: 12,
-    completedCredits: 0,
-    inProgressCredits: 2,
-    color: '#f59e0b'
-  },
-  {
-    name: 'Electivas de Énfasis / Especialidad',
-    requiredCredits: 16,
-    completedCredits: 0,
-    inProgressCredits: 0,
-    color: '#ec4899'
-  }
-];
+    color: COLOR_POR_AREA[name] ?? '#71717a'
+  }));
+})();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Course } from '../types/curriculum';
 import { CheckCircle2, Lock, Filter, Search, Sparkles } from 'lucide-react';
 
@@ -20,7 +20,11 @@ export const MallaFlujoView: React.FC<MallaFlujoViewProps> = ({
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const semesters = [1, 2, 3, 4, 5, 6, 7, 8];
+  // Los ciclos del plan se derivan de los semestres presentes en la base de datos.
+  const semesters = useMemo(
+    () => [...new Set(courses.map((course) => course.semester))].sort((a, b) => a - b),
+    [courses]
+  );
 
   const filteredCourses = courses.filter((c) => {
     if (filterType !== 'all') {
@@ -49,7 +53,7 @@ export const MallaFlujoView: React.FC<MallaFlujoViewProps> = ({
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-white">Malla Flujo Curricular (Plan 2024)</h2>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              8 Periodos Académicos
+              {semesters.length} Periodos Académicos
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-0.5">
@@ -115,12 +119,19 @@ export const MallaFlujoView: React.FC<MallaFlujoViewProps> = ({
         </div>
       </div>
 
-      {/* Horizontal Scrollable Grid of 8 Semesters */}
+      {/* Horizontal Scrollable Grid of Semesters */}
       <div className="overflow-x-auto pb-6">
-        <div className="grid grid-cols-8 gap-4 min-w-[1550px]">
+        <div
+          className="grid gap-4 min-w-[1550px]"
+          style={{ gridTemplateColumns: `repeat(${semesters.length}, minmax(0, 1fr))` }}
+        >
           {semesters.map((sem) => {
             const semCourses = filteredCourses.filter((c) => c.semester === sem);
-            const semCredits = semCourses.reduce((acc, c) => acc + c.credits, 0);
+            const cicloCompleto = courses.filter((c) => c.semester === sem);
+            const semCredits = cicloCompleto.reduce((acc, c) => acc + c.credits, 0);
+            const aprobado =
+              cicloCompleto.length > 0 && cicloCompleto.every((c) => c.status === 'Aprobado');
+            const enCurso = cicloCompleto.some((c) => enrolledCourseIds.includes(c.id));
 
             return (
               <div
@@ -132,7 +143,7 @@ export const MallaFlujoView: React.FC<MallaFlujoViewProps> = ({
                   <div>
                     <h3 className="font-semibold text-white text-xs">Semestre {sem}</h3>
                     <span className="text-[10px] text-zinc-400 font-mono">
-                      {sem <= 2 ? 'Superado' : sem === 3 ? 'Actual (2025-1)' : 'Futuro'}
+                      {aprobado ? 'Superado' : enCurso ? 'Actual' : 'Futuro'}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#16181d] text-zinc-300 border border-white/[0.05]">
