@@ -1,0 +1,6 @@
+{
+  "name": "CurriculaGraph - Planificador Académico DAG",
+  "description": "Herramienta interactiva de planificación académica y visualización curricular basada en grafos acíclicos dirigidos (DAG), análisis de cuellos de botella y auditoría de grado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

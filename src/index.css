@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-obsidian-950: #0b0c0e;
+    --bg-obsidian-900: #111215;
+    --bg-obsidian-850: #131418;
+    --bg-obsidian-800: #16181d;
+    --bg-obsidian-750: #1c1e24;
+    --bg-obsidian-700: #232630;
+    --bg-obsidian-600: #2e323e;
+  }
+}
+
+/* Subtle dot grid matrix inspired by modern devtools and node graphs */
+.bg-dot-grid {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+}
+
+.bg-dot-grid-light {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(15, 23, 42, 0.12) 1px, transparent 1px);
+}
+
+/* Custom glow effects for active nodes */
+.glow-active {
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.5), 0 8px 24px -4px rgba(16, 185, 129, 0.25);
+}
+.glow-warning {
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 8px 24px -4px rgba(245, 158, 11, 0.2);
+}
+.glow-cyan {
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.5), 0 8px 24px -4px rgba(6, 182, 212, 0.2);
+}
+.glow-violet {
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.5), 0 8px 24px -4px rgba(139, 92, 246, 0.2);
+}
+
+/* Smooth transition for interactive panels */
+.transition-panel {
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+/* Custom thin scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0c0e;
+}
+::-webkit-scrollbar-thumb {
+  background: #232630;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #373b49;
+}
+
+/* Font family helpers */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+.font-sans {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.font-heading {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}

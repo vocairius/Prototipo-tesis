@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CurriculaGraph - Planificador Académico DAG</title>
+<!-- Tailwind CSS v3 CDN with Forms & Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: {
+              950: '#0b0c0e',
+              900: '#111215',
+              850: '#131418',
+              800: '#16181d',
+              750: '#1c1e24',
+              700: '#232630',
+              600: '#2e323e'
+            },
+            accent: {
+              emerald: '#10b981',
+              cyan: '#06b6d4',
+              violet: '#8b5cf6',
+              amber: '#f59e0b',
+              rose: '#f43f5e'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+<!-- Google Font: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- BEGIN: Custom Canvas and Pattern Styles -->
+<style data-purpose="canvas-patterns">
+    /* Subtle dot grid matrix inspired by modern devtools and node graphs */
+    .bg-dot-grid {
+      background-size: 24px 24px;
+      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+    }
+    
+    /* Custom glow effects for active nodes */
+    .glow-active {
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.4), 0 8px 24px -4px rgba(16, 185, 129, 0.15);
+    }
+    .glow-warning {
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.45), 0 8px 24px -4px rgba(245, 158, 11, 0.15);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4), 0 8px 24px -4px rgba(6, 182, 212, 0.15);
+    }
+    
+    /* Smooth transition for interactive panels */
+    .transition-panel {
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Custom thin scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0c0e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #232630;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #373b49;
+    }
+  </style>
+<!-- END: Custom Canvas and Pattern Styles -->
+</head>
+<body class="bg-obsidian-950 text-zinc-200 font-sans antialiased h-screen w-screen overflow-hidden select-none flex flex-col">
+<!-- BEGIN: TopHeader -->
+<header class="h-13 bg-obsidian-900 border-b border-white/[0.08] px-4 flex items-center justify-between z-30 shrink-0" data-purpose="top-navigation">
+<!-- Window Controls & Workspace Name -->
+<div class="flex items-center space-x-4">
+<!-- macOS Window Traffic Lights -->
+<div class="flex items-center space-x-2 mr-2" data-purpose="window-controls">
+<span class="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm hover:opacity-80 transition cursor-pointer"></span>
+<span class="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-sm hover:opacity-80 transition cursor-pointer"></span>
+<span class="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-sm hover:opacity-80 transition cursor-pointer"></span>
+</div>
+<!-- App Branding / Breadcrumb -->
+<div class="flex items-center space-x-2 border-l border-zinc-800 pl-4 py-1">
+<div class="w-6 h-6 rounded bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center shadow-md">
+<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-xs font-semibold tracking-wider text-white">CurriculaGraph</span>
+<span class="text-zinc-600">/</span>
+<span class="text-xs text-zinc-400 font-mono">Plan-2024 (Multimedia)</span>
+<span class="px-2 py-0.5 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-mono">DAG v2.4</span>
+</div>
+</div>
+<!-- Center View Switcher Pill -->
+<div class="hidden md:flex items-center bg-obsidian-850 p-1 rounded-xl border border-white/[0.07] text-xs font-medium" data-purpose="view-selector">
+<button class="px-3.5 py-1.5 rounded-lg bg-zinc-800 text-white shadow-sm transition flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Canvas de Nodos</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 transition flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Malla Flujo</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 transition flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Auditoría de Grado</span>
+</button>
+</div>
+<!-- Right Header Action Buttons -->
+<div class="flex items-center space-x-2.5">
+<!-- Diagnostics Trigger Modal Button -->
+<button class="px-3 py-1.5 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 border border-white/[0.08] text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5 shadow-sm" id="open-diagnostic-btn">
+<svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Diagnóstico</span>
+</button>
+<!-- Run DAG Algorithm Action Button -->
+<button class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-xs font-medium text-emerald-300 hover:text-emerald-200 transition flex items-center gap-1.5 shadow-sm" id="run-dag-btn">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+<span>Ejecutar DAG</span>
+</button>
+<!-- Pre-enrollment High Contrast Pill -->
+<div class="px-3 py-1.5 rounded-lg bg-white text-zinc-950 text-xs font-semibold flex items-center gap-1.5 shadow hover:bg-zinc-100 transition cursor-pointer">
+<svg class="w-3.5 h-3.5 text-emerald-700" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+<span>Pre-matrícula <span class="bg-zinc-200 text-zinc-900 px-1.5 py-0.2 rounded text-[11px] font-mono">14 CR</span></span>
+</div>
+<!-- Toggle Right Inspector Button -->
+<button class="p-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-400 hover:text-white border border-white/[0.08] transition" id="toggle-inspector-btn" title="Alternar Inspector Lateral">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 6h16M4 12h16m-7 6h7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- END: TopHeader -->
+<!-- BEGIN: MainContentArea -->
+<div class="flex-1 flex overflow-hidden relative" data-purpose="workspace-body">
+<!-- BEGIN: LeftFloatingDock -->
+<!-- Floating Vertical Dock Pill inspired by Image 3 -->
+<aside class="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center p-2 rounded-full bg-obsidian-900/90 backdrop-blur-md border border-white/[0.1] shadow-2xl space-y-3" data-purpose="floating-dock">
+<!-- Active Primary App Icon -->
+<button class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 hover:scale-105 transition" title="Red de Malla">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- Navigation item 1 -->
+<button class="w-9 h-9 rounded-xl bg-obsidian-800 text-zinc-300 hover:text-white hover:bg-obsidian-750 flex items-center justify-center transition" title="Home Semestral">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Navigation item 2 -->
+<button class="w-9 h-9 rounded-xl text-zinc-400 hover:text-white hover:bg-obsidian-800 flex items-center justify-center transition" title="Base de Conocimiento de Cursos">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Navigation item 3 -->
+<button class="w-9 h-9 rounded-xl text-zinc-400 hover:text-white hover:bg-obsidian-800 flex items-center justify-center transition" title="Cuellos de Botella">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Navigation item 4 -->
+<button class="w-9 h-9 rounded-xl text-zinc-400 hover:text-white hover:bg-obsidian-800 flex items-center justify-center transition" title="Historial Académico">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Separator line -->
+<div class="w-5 h-[1px] bg-zinc-800 my-1"></div>
+<!-- Alerts / Bell -->
+<button class="w-9 h-9 rounded-xl text-zinc-400 hover:text-white hover:bg-obsidian-800 flex items-center justify-center relative transition" title="Notificaciones">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="w-1.5 h-1.5 bg-rose-500 rounded-full absolute top-2 right-2"></span>
+</button>
+<!-- Settings -->
+<button class="w-9 h-9 rounded-xl text-zinc-400 hover:text-white hover:bg-obsidian-800 flex items-center justify-center transition" title="Configuración de Grafo">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Gradient Ring User Avatar (Image 3 inspiration) -->
+<div class="pt-1">
+<div class="w-8 h-8 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 cursor-pointer hover:scale-105 transition">
+<div class="w-full h-full rounded-full bg-obsidian-900 flex items-center justify-center text-[10px] font-bold text-white">
+            AL
+          </div>
+</div>
+</div>
+</aside>
+<!-- END: LeftFloatingDock -->
+<!-- BEGIN: CanvasArea -->
+<!-- The Graph Workspace with Dot Grid and Interactive Nodes -->
+<main class="flex-1 h-full bg-dot-grid relative overflow-auto p-8" data-purpose="node-graph-canvas" id="graph-viewport">
+<!-- Virtual Canvas Boundary (Large working space) -->
+<div class="min-w-[1240px] min-h-[720px] relative py-12 px-20">
+<!-- SVG Vector Connection Lines between Courses -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<lineargradient id="lineGradApproved" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#10b981" stop-opacity="0.9"></stop>
+<stop offset="100%" stop-color="#06b6d4" stop-opacity="0.9"></stop>
+</lineargradient>
+<lineargradient id="lineGradWarning" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#f59e0b" stop-opacity="0.8"></stop>
+<stop offset="100%" stop-color="#10b981" stop-opacity="0.8"></stop>
+</lineargradient>
+</defs>
+<!-- Line 1: Prog I (N1) -> Prog II (N2) -->
+<path d="M 280 180 L 370 180" fill="none" stroke="#10b981" stroke-dasharray="4 3" stroke-width="2"></path>
+<circle cx="370" cy="180" fill="#10b981" r="3"></circle>
+<!-- Line 2: Prog II (N2) -> Prog Orientada Objetos (N3) -->
+<path d="M 610 180 C 650 180, 650 280, 690 280" fill="none" stroke="url(#lineGradApproved)" stroke-width="2.5"></path>
+<circle cx="690" cy="280" fill="#06b6d4" r="3.5"></circle>
+<!-- Line 3: Prog II (N2) -> Estructura de Datos (N4) -->
+<path d="M 610 180 C 650 180, 650 100, 690 100" fill="none" stroke="#2e323e" stroke-dasharray="3 3" stroke-width="1.5"></path>
+<circle cx="690" cy="100" fill="#64748b" r="3"></circle>
+<!-- Line 4: Álgebra Lineal (N5) -> Computación Gráfica (N6) -->
+<path d="M 280 380 C 480 380, 500 420, 690 420" fill="none" stroke="url(#lineGradWarning)" stroke-width="2"></path>
+<circle cx="690" cy="420" fill="#10b981" r="3.5"></circle>
+<!-- Line 5: Prog Orientada Objetos (N3) -> Computación Gráfica (N6) -->
+<path d="M 930 280 C 970 280, 650 420, 690 420" fill="none" stroke="#10b981" stroke-opacity="0.4" stroke-width="2"></path>
+<!-- Line 6: POO (N3) -> Arquitectura de Software (N7) -->
+<path d="M 930 280 L 1020 280" fill="none" stroke="#10b981" stroke-width="2.5"></path>
+<circle cx="1020" cy="280" fill="#10b981" r="3.5"></circle>
+<!-- Line 7: Comp Gráfica (N6) -> Render 3D & Shaders (N8) -->
+<path d="M 930 420 L 1020 420" fill="none" stroke="#f43f5e" stroke-dasharray="4 4" stroke-width="1.8"></path>
+<circle cx="1020" cy="420" fill="#f43f5e" r="3"></circle>
+</svg>
+<!-- Condition Tag Pill over Line 2 -->
+<div class="absolute top-[215px] left-[612px] -translate-x-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-mono text-emerald-300 shadow">
+          Req = Aprobado (100%)
+        </div>
+<!-- Condition Tag Pill over Line 4 (Cuello de Botella) -->
+<div class="absolute top-[395px] left-[450px] -translate-x-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded bg-amber-950/90 border border-amber-500/50 text-[10px] font-mono text-amber-300 shadow flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+<span>Cuello de Botella</span>
+</div>
+<!-- Condition Tag Pill over Line 6 (Status Sugerido) -->
+<div class="absolute top-[260px] left-[965px] -translate-x-1/2 -translate-y-1/2 z-10 px-2 py-0.5 rounded bg-obsidian-850 border border-white/[0.1] text-[10px] font-mono text-zinc-300 shadow">
+          Status = Óptimo (2025-1)
+        </div>
+<!-- ==================== GRAPH NODES ==================== -->
+<!-- Node 1: Programación I (Aprobado) -->
+<div class="graph-card absolute top-[130px] left-[40px] w-60 rounded-2xl bg-obsidian-800 border border-emerald-500/50 p-4 shadow-xl cursor-pointer hover:border-emerald-400 transition transform hover:-translate-y-0.5 group" data-code="CC-101" data-credits="4" data-desc="Fundamentos de algoritmia, sintaxis modular, control de flujo y estructuras de memoria básicas." data-grade="9.4" data-purpose="graph-node" data-status="Aprobado" data-title="Programación Básica I" data-type="Obligatorio" id="node-cc101">
+<!-- Connection Terminal Ports -->
+<span class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-500 border-2 border-obsidian-900 group-hover:scale-125 transition"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono text-xs font-bold">
+                P1
+              </div>
+<div>
+<span class="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold">Semestre 1 • 4 CR</span>
+<h4 class="text-xs font-semibold text-white leading-tight">Prog. Básica I</h4>
+</div>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">OK</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-zinc-400">
+<span>Nota: <strong class="text-white font-mono">9.4/10</strong></span>
+<span class="text-emerald-400 font-mono">Aprobado</span>
+</div>
+</div>
+<!-- Node 2: Programación II (Aprobado) -->
+<div class="graph-card absolute top-[130px] left-[370px] w-60 rounded-2xl bg-obsidian-800 border border-emerald-500/50 p-4 shadow-xl cursor-pointer hover:border-emerald-400 transition transform hover:-translate-y-0.5 group" data-code="CC-102" data-credits="4" data-desc="Punteros, estructuras de datos lineales en C++, concurrencia básica y gestión de recursos." data-grade="8.8" data-purpose="graph-node" data-status="Aprobado" data-title="Programación Básica II" data-type="Obligatorio" id="node-cc102">
+<!-- Ports -->
+<span class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-500 border-2 border-obsidian-900"></span>
+<span class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-500 border-2 border-obsidian-900 group-hover:scale-125 transition"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono text-xs font-bold">
+                P2
+              </div>
+<div>
+<span class="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">Semestre 2 • 4 CR</span>
+<h4 class="text-xs font-semibold text-white leading-tight">Prog. Básica II</h4>
+</div>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">OK</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-zinc-400">
+<span>Nota: <strong class="text-white font-mono">8.8/10</strong></span>
+<span class="text-emerald-400 font-mono">Aprobado</span>
+</div>
+</div>
+<!-- Node 3: Programación Orientada a Objetos (Sugerido para Inscribir / Active) -->
+<div class="graph-card absolute top-[230px] left-[690px] w-60 rounded-2xl bg-obsidian-800 border-2 border-emerald-400 glow-active p-4 shadow-2xl cursor-pointer transition transform hover:-translate-y-0.5 group" data-code="CC-201" data-credits="4" data-desc="Paradigmas de objetos, patrones GoF, abstracción, herencia múltiple y polimorfismo dinámico en Rust/C++." data-grade="Pendiente" data-purpose="graph-node" data-status="Sugerido" data-title="Prog. Orientada a Objetos" data-type="Núcleo Obligatorio" id="node-cc201">
+<!-- Ports -->
+<span class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-400 border-2 border-obsidian-900"></span>
+<span class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-400 border-2 border-obsidian-900 group-hover:scale-125 transition"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-mono text-xs font-bold shadow-inner">
+                PO
+              </div>
+<div>
+<span class="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-semibold">Semestre 3 • 4 CR</span>
+<h4 class="text-xs font-semibold text-white leading-tight">Prog. Orientada a Objetos</h4>
+</div>
+</div>
+<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-400 text-obsidian-950 font-bold font-mono uppercase tracking-tight">Ruta</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-300">
+<span class="flex items-center gap-1 text-emerald-300 text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              Seleccionado
+            </span>
+<span class="text-white font-mono font-medium">Prioridad Alta</span>
+</div>
+</div>
+<!-- Node 4: Estructura de Datos (No Seleccionado / Siguiente periodo) -->
+<div class="graph-card absolute top-[50px] left-[690px] w-60 rounded-2xl bg-obsidian-850/80 border border-zinc-800 p-4 shadow-lg cursor-pointer hover:border-zinc-600 transition transform hover:-translate-y-0.5 group opacity-85 hover:opacity-100" data-code="CC-202" data-credits="4" data-desc="Árboles autobalanceados, grafos dirigidos, tablas hash concurrentes y análisis amortizado." data-grade="Sin cursar" data-purpose="graph-node" data-status="Disponible" data-title="Estructuras de Datos Avanzadas" data-type="Obligatorio" id="node-cc202">
+<span class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-zinc-600 border-2 border-obsidian-900"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 font-mono text-xs font-bold">
+                ED
+              </div>
+<div>
+<span class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-semibold">Semestre 3 • 4 CR</span>
+<h4 class="text-xs font-semibold text-zinc-300 leading-tight">Estructura de Datos</h4>
+</div>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">Postergable</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-zinc-400">
+<span>Prerreq: <strong class="text-zinc-300 font-mono">CC-102</strong></span>
+<span class="text-zinc-400 font-mono">Desbloqueado</span>
+</div>
+</div>
+<!-- Node 5: Álgebra Lineal & Geometría (Aprobado / Cuello de botella superado) -->
+<div class="graph-card absolute top-[330px] left-[40px] w-60 rounded-2xl bg-obsidian-800 border border-amber-500/50 glow-warning p-4 shadow-xl cursor-pointer hover:border-amber-400 transition transform hover:-translate-y-0.5 group" data-code="MAT-102" data-credits="3" data-desc="Espacios vectoriales, matrices de transformación afín, autovalores, autovectores y descomposición SVD." data-grade="7.9" data-purpose="graph-node" data-status="Aprobado" data-title="Álgebra Lineal &amp; Vectorial" data-type="Ciencias Básicas" id="node-mat102">
+<!-- Ports -->
+<span class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-amber-400 border-2 border-obsidian-900 group-hover:scale-125 transition"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-mono text-xs font-bold">
+                AL
+              </div>
+<div>
+<span class="text-[10px] font-mono text-amber-400 uppercase tracking-wider font-semibold">Semestre 2 • 3 CR</span>
+<h4 class="text-xs font-semibold text-white leading-tight">Álgebra Lineal</h4>
+</div>
+</div>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">CRÍTICO</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-zinc-400">
+<span>Desbloquea: <strong class="text-amber-300 font-mono">4 Cursos</strong></span>
+<span class="text-emerald-400 font-mono">Aprobado</span>
+</div>
+</div>
+<!-- Node 6: Computación Gráfica (Sugerido para Inscribir / Core Multimedia) -->
+<div class="graph-card absolute top-[370px] left-[690px] w-60 rounded-2xl bg-obsidian-800 border-2 border-emerald-400 glow-active p-4 shadow-2xl cursor-pointer transition transform hover:-translate-y-0.5 group" data-code="MUL-201" data-credits="4" data-desc="Pipeline de rasterización moderna, shaders en GLSL/WebGL, cámaras virtuales y matrices de proyección." data-grade="Pendiente" data-purpose="graph-node" data-status="Sugerido" data-title="Computación Gráfica I" data-type="Núcleo Multimedia" id="node-mul201">
+<!-- Ports -->
+<span class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-400 border-2 border-obsidian-900"></span>
+<span class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-emerald-400 border-2 border-obsidian-900 group-hover:scale-125 transition"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-400 font-mono text-xs font-bold">
+                CG
+              </div>
+<div>
+<span class="text-[10px] font-mono text-violet-400 uppercase tracking-wider font-semibold">Semestre 3 • 4 CR</span>
+<h4 class="text-xs font-semibold text-white leading-tight">Computación Gráfica</h4>
+</div>
+</div>
+<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-400 text-obsidian-950 font-bold font-mono uppercase tracking-tight">Ruta</span>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-zinc-300">
+<span class="text-zinc-400">Req: <span class="text-zinc-200 font-mono">MAT-102, CC-102</span></span>
+<span class="text-emerald-400 font-mono font-medium">Inscrito (4 CR)</span>
+</div>
+</div>
+<!-- Node 7: Arquitectura de Software (Semestre 4 - Bloqueado) -->
+<div class="graph-card absolute top-[230px] left-[1020px] w-60 rounded-2xl bg-obsidian-900/90 border border-zinc-800/80 p-4 shadow-lg cursor-pointer hover:border-zinc-700 transition transform hover:-translate-y-0.5 group opacity-75 hover:opacity-90" data-code="CC-301" data-credits="3" data-desc="Diseño de sistemas distribuidos, microservicios, capas de dominio y consistencia eventual." data-grade="Sin cursar" data-purpose="graph-node" data-status="Bloqueado" data-title="Arquitectura de Sistemas" data-type="Obligatorio" id="node-cc301">
+<span class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-zinc-700 border-2 border-obsidian-900"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 font-mono text-xs font-bold">
+                AR
+              </div>
+<div>
+<span class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">Semestre 4 • 3 CR</span>
+<h4 class="text-xs font-semibold text-zinc-300 leading-tight">Arquitectura de Soft.</h4>
+</div>
+</div>
+<svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-zinc-500">
+<span>Req: <strong class="text-zinc-400 font-mono">CC-201 (POO)</strong></span>
+<span class="text-zinc-500 font-mono">Bloqueado</span>
+</div>
+</div>
+<!-- Node 8: Render 3D & Shaders (Semestre 4 - Bloqueado por CG) -->
+<div class="graph-card absolute top-[370px] left-[1020px] w-60 rounded-2xl bg-obsidian-900/90 border border-zinc-800/80 p-4 shadow-lg cursor-pointer hover:border-zinc-700 transition transform hover:-translate-y-0.5 group opacity-75 hover:opacity-90" data-code="MUL-302" data-credits="3" data-desc="Raytracing en GPU, physically based rendering (PBR), shaders de cómputo y optimización espacial." data-grade="Sin cursar" data-purpose="graph-node" data-status="Bloqueado" data-title="Render 3D y Shaders" data-type="Especialidad" id="node-mul302">
+<span class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-zinc-700 border-2 border-obsidian-900"></span>
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 font-mono text-xs font-bold">
+                3D
+              </div>
+<div>
+<span class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider font-semibold">Semestre 4 • 3 CR</span>
+<h4 class="text-xs font-semibold text-zinc-300 leading-tight">Render 3D &amp; Shaders</h4>
+</div>
+</div>
+<svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div class="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-zinc-500">
+<span>Req: <strong class="text-zinc-400 font-mono">MUL-201</strong></span>
+<span class="text-zinc-500 font-mono">Bloqueado</span>
+</div>
+</div>
+</div>
+<!-- Canvas Navigation & Zoom Floating Pill (Bottom-left) -->
+<div class="absolute bottom-6 left-20 z-20 flex items-center bg-obsidian-900/90 backdrop-blur border border-white/[0.1] rounded-xl px-2 py-1.5 shadow-xl space-x-2 text-xs" data-purpose="canvas-zoom-controls">
+<button class="w-7 h-7 rounded-lg hover:bg-obsidian-800 flex items-center justify-center text-zinc-400 hover:text-white transition" id="zoom-out">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<span class="font-mono text-[11px] text-zinc-300 px-1">100%</span>
+<button class="w-7 h-7 rounded-lg hover:bg-obsidian-800 flex items-center justify-center text-zinc-400 hover:text-white transition" id="zoom-in">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<div class="w-[1px] h-4 bg-zinc-800 mx-1"></div>
+<button class="px-2 py-1 rounded-md text-[11px] text-zinc-400 hover:text-white hover:bg-obsidian-800 transition">Recenter</button>
+</div>
+</main>
+<!-- END: CanvasArea -->
+<!-- BEGIN: RightInspectorSidebar -->
+<!-- Drawer retráctil con fondo obsidian-850 y borde translúcido -->
+<aside class="w-80 h-full bg-obsidian-850 border-l border-white/[0.08] flex flex-col shrink-0 z-20 shadow-2xl transition-panel" data-purpose="inspector-sidebar" id="inspector-sidebar">
+<!-- Panel Header -->
+<div class="p-4 border-b border-white/[0.08] flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+<h3 class="text-xs font-semibold uppercase tracking-wider text-white">Inspector de Malla</h3>
+</div>
+<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">DAG-ACTIVE</span>
+</div>
+<!-- Panel Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-4 space-y-6">
+<!-- Metrics Overview Section (Linear/Obsidian style) -->
+<div class="space-y-3" data-purpose="metrics-summary">
+<div class="flex items-center justify-between text-xs">
+<span class="text-zinc-400">Progreso Total de Carrera</span>
+<span class="text-white font-mono font-medium">42 / 164 CR (25.6%)</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-obsidian-750 h-2 rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
+<div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full w-[25.6%] shadow-sm"></div>
+</div>
+<!-- Mini Stats Grid -->
+<div class="grid grid-cols-2 gap-2 pt-2">
+<div class="p-2.5 rounded-xl bg-obsidian-800 border border-white/[0.05]">
+<span class="text-[10px] text-zinc-400 block">Carga Sugerida</span>
+<span class="text-sm font-semibold text-emerald-400 font-mono">14 CR</span>
+<span class="text-[10px] text-zinc-500 block">4 asignaturas óptimas</span>
+</div>
+<div class="p-2.5 rounded-xl bg-obsidian-800 border border-white/[0.05]">
+<span class="text-[10px] text-zinc-400 block">Semestre Proyectado</span>
+<span class="text-sm font-semibold text-white font-mono">3° Nivel</span>
+<span class="text-[10px] text-zinc-500 block">Plan de 8 periodos</span>
+</div>
+</div>
+</div>
+<div class="border-t border-white/[0.06]"></div>
+<!-- Dynamic Selected Course Details Card -->
+<div class="space-y-4" data-purpose="node-details-card" id="selected-node-details">
+<div class="flex items-start justify-between">
+<div>
+<span class="text-[11px] font-mono text-emerald-400 uppercase tracking-wider font-semibold" id="inspect-code">CC-201</span>
+<h2 class="text-sm font-semibold text-white mt-0.5" id="inspect-title">Prog. Orientada a Objetos</h2>
+</div>
+<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" id="inspect-badge">SUGERIDO</span>
+</div>
+<!-- Meta badges -->
+<div class="flex flex-wrap gap-1.5 text-[11px]">
+<span class="px-2 py-1 rounded-md bg-obsidian-800 text-zinc-300 border border-white/[0.05]">
+              Créditos: <strong class="text-white font-mono" id="inspect-credits">4 CR</strong>
+</span>
+<span class="px-2 py-1 rounded-md bg-obsidian-800 text-zinc-300 border border-white/[0.05]">
+              Tipo: <strong class="text-white" id="inspect-type">Obligatorio</strong>
+</span>
+<span class="px-2 py-1 rounded-md bg-obsidian-800 text-zinc-300 border border-white/[0.05]">
+              Calificación: <strong class="text-emerald-400 font-mono" id="inspect-grade">Pendiente</strong>
+</span>
+</div>
+<!-- Description Box -->
+<div class="space-y-1.5">
+<span class="text-[11px] font-medium text-zinc-400">Descripción del Módulo</span>
+<p class="text-xs text-zinc-300 leading-relaxed bg-obsidian-800/80 p-3 rounded-xl border border-white/[0.04]" id="inspect-desc">
+              Paradigmas de objetos, patrones GoF, abstracción, herencia múltiple y polimorfismo dinámico en Rust/C++.
+            </p>
+</div>
+<!-- Course Graph Dependencies Breakdown -->
+<div class="space-y-2">
+<span class="text-[11px] font-medium text-zinc-400">Dependencias DAG</span>
+<div class="space-y-1.5 text-xs">
+<div class="p-2 rounded-lg bg-obsidian-800 flex items-center justify-between border border-white/[0.03]">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+<span class="text-zinc-300">Prerrequisito: CC-102</span>
+</div>
+<span class="text-[10px] text-emerald-400 font-mono">Cumplido (8.8)</span>
+</div>
+<div class="p-2 rounded-lg bg-obsidian-800 flex items-center justify-between border border-white/[0.03]">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+<span class="text-zinc-300">Desbloquea: CC-301</span>
+</div>
+<span class="text-[10px] text-zinc-400 font-mono">Próximo ciclo</span>
+</div>
+</div>
+</div>
+<!-- Enroll / State Toggle Action -->
+<button class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-obsidian-950 font-semibold text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5" id="toggle-enroll-btn">
+<svg class="w-4 h-4 text-obsidian-950" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+<span>Inscrito en Ruta Sugerida</span>
+</button>
+</div>
+</div>
+<!-- Inspector Footer Action -->
+<div class="p-4 border-t border-white/[0.08] bg-obsidian-900/60" data-purpose="inspector-footer">
+<button class="w-full py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition flex items-center justify-between shadow">
+<span>Confirmar Pre-matrícula</span>
+<span class="bg-zinc-300 text-zinc-900 px-2 py-0.5 rounded text-[11px] font-mono">14 CR</span>
+</button>
+</div>
+</aside>
+<!-- END: RightInspectorSidebar -->
+</div>
+<!-- END: MainContentArea -->
+<!-- BEGIN: DiagnosticModal -->
+<!-- Floating Diagnostic Modal Dialog with Backdrop Blur -->
+<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200" data-purpose="diagnostic-dialog" id="diagnostic-modal">
+<div class="w-full max-w-md bg-obsidian-900 border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200" id="diagnostic-modal-content">
+<!-- Modal Header -->
+<div class="p-5 border-b border-white/[0.08] flex items-center justify-between">
+<div class="flex items-center space-x-2.5">
+<div class="w-7 h-7 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div>
+<h3 class="text-sm font-semibold text-white">Diagnóstico de Trayectoria DAG</h3>
+<p class="text-xs text-zinc-400">Calibración previa del motor curricular</p>
+</div>
+</div>
+<button class="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-obsidian-800 transition" id="close-diagnostic-btn">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+</div>
+<!-- Modal Body -->
+<div class="p-5 space-y-5 text-xs">
+<!-- Question 1: Semester Selector -->
+<div>
+<label class="block font-medium text-zinc-200 mb-2">1. ¿En qué semestre te encuentras o vas a cursar?</label>
+<div class="grid grid-cols-4 gap-2" id="semester-pills">
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">1° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">2° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-emerald-500 text-obsidian-950 font-bold border border-emerald-400 shadow-sm transition text-center font-mono" type="button">3° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">4° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">5° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">6° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">7° Sem</button>
+<button class="sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono" type="button">8° Sem</button>
+</div>
+</div>
+<!-- Question 2: Academic Status -->
+<div>
+<label class="block font-medium text-zinc-200 mb-2">2. ¿Has reprobado o retirado asignaturas anteriormente?</label>
+<div class="space-y-2">
+<label class="flex items-center p-3 rounded-xl bg-obsidian-800/80 border border-emerald-500/40 cursor-pointer hover:bg-obsidian-800 transition">
+<input checked="" class="text-emerald-500 focus:ring-emerald-500 h-4 w-4 bg-obsidian-900 border-zinc-700" name="academic_status" type="radio"/>
+<div class="ml-3">
+<span class="block text-xs font-semibold text-white">Al día (Sin asignaturas pendientes)</span>
+<span class="block text-[11px] text-zinc-400">Ruta estándar sin rezago de prerrequisitos.</span>
+</div>
+</label>
+<label class="flex items-center p-3 rounded-xl bg-obsidian-800/80 border border-white/[0.05] cursor-pointer hover:bg-obsidian-800 transition">
+<input class="text-emerald-500 focus:ring-emerald-500 h-4 w-4 bg-obsidian-900 border-zinc-700" name="academic_status" type="radio"/>
+<div class="ml-3">
+<span class="block text-xs font-semibold text-white">Con pendientes o asignaturas retiradas</span>
+<span class="block text-[11px] text-zinc-400">El algoritmo DAG priorizará cuellos de botella críticos.</span>
+</div>
+</label>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="p-4 bg-obsidian-850 border-t border-white/[0.08] flex items-center justify-end space-x-2">
+<button class="px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition" id="cancel-diagnostic-btn">Cancelar</button>
+<button class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-obsidian-950 font-bold text-xs transition shadow-lg shadow-emerald-500/20 flex items-center gap-1.5" id="submit-diagnostic-btn">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+<span>Generar Ruta Óptima (DAG)</span>
+</button>
+</div>
+</div>
+</div>
+<!-- END: DiagnosticModal -->
+<!-- BEGIN: Interactive Logic Scripts -->
+<script data-purpose="node-selection-and-ui">
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Interactive Node Selection in Graph
+      const nodes = document.querySelectorAll('.graph-card');
+      const inspectCode = document.getElementById('inspect-code');
+      const inspectTitle = document.getElementById('inspect-title');
+      const inspectBadge = document.getElementById('inspect-badge');
+      const inspectCredits = document.getElementById('inspect-credits');
+      const inspectType = document.getElementById('inspect-type');
+      const inspectGrade = document.getElementById('inspect-grade');
+      const inspectDesc = document.getElementById('inspect-desc');
+      const toggleEnrollBtn = document.getElementById('toggle-enroll-btn');
+
+      nodes.forEach(node => {
+        node.addEventListener('click', () => {
+          // Reset highlights
+          nodes.forEach(n => {
+            n.classList.remove('ring-2', 'ring-cyan-400', 'ring-offset-2', 'ring-offset-obsidian-950');
+          });
+
+          // Add highlight to current
+          node.classList.add('ring-2', 'ring-cyan-400', 'ring-offset-2', 'ring-offset-obsidian-950');
+
+          // Read data attributes
+          const code = node.dataset.code || 'INF-00';
+          const title = node.dataset.title || 'Curso';
+          const credits = node.dataset.credits || '3';
+          const type = node.dataset.type || 'Obligatorio';
+          const status = node.dataset.status || 'Disponible';
+          const grade = node.dataset.grade || '--';
+          const desc = node.dataset.desc || 'Sin descripción disponible.';
+
+          // Update Inspector Panel with smooth visual update
+          if (inspectCode) inspectCode.textContent = code;
+          if (inspectTitle) inspectTitle.textContent = title;
+          if (inspectCredits) inspectCredits.textContent = credits + ' CR';
+          if (inspectType) inspectType.textContent = type;
+          if (inspectGrade) inspectGrade.textContent = grade;
+          if (inspectDesc) inspectDesc.textContent = desc;
+
+          if (inspectBadge) {
+            inspectBadge.textContent = status.toUpperCase();
+            if (status === 'Aprobado') {
+              inspectBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            } else if (status === 'Sugerido') {
+              inspectBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30';
+            } else {
+              inspectBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400 border border-zinc-700';
+            }
+          }
+
+          // Ensure right sidebar is open when a node is clicked
+          const sidebar = document.getElementById('inspector-sidebar');
+          if (sidebar && sidebar.classList.contains('hidden')) {
+            sidebar.classList.remove('hidden');
+          }
+        });
+      });
+
+      // 2. Toggle Right Inspector Sidebar
+      const toggleInspectorBtn = document.getElementById('toggle-inspector-btn');
+      const inspectorSidebar = document.getElementById('inspector-sidebar');
+
+      if (toggleInspectorBtn && inspectorSidebar) {
+        toggleInspectorBtn.addEventListener('click', () => {
+          inspectorSidebar.classList.toggle('hidden');
+        });
+      }
+
+      // 3. Diagnostic Modal Toggle and Interactions
+      const diagnosticModal = document.getElementById('diagnostic-modal');
+      const diagnosticContent = document.getElementById('diagnostic-modal-content');
+      const openDiagnosticBtn = document.getElementById('open-diagnostic-btn');
+      const closeDiagnosticBtn = document.getElementById('close-diagnostic-btn');
+      const cancelDiagnosticBtn = document.getElementById('cancel-diagnostic-btn');
+      const submitDiagnosticBtn = document.getElementById('submit-diagnostic-btn');
+      const runDagBtn = document.getElementById('run-dag-btn');
+
+      const openModal = () => {
+        if (!diagnosticModal) return;
+        diagnosticModal.classList.remove('opacity-0', 'pointer-events-none');
+        diagnosticContent.classList.remove('scale-95');
+        diagnosticContent.classList.add('scale-100');
+      };
+
+      const closeModal = () => {
+        if (!diagnosticModal) return;
+        diagnosticModal.classList.add('opacity-0', 'pointer-events-none');
+        diagnosticContent.classList.remove('scale-100');
+        diagnosticContent.classList.add('scale-95');
+      };
+
+      if (openDiagnosticBtn) openDiagnosticBtn.addEventListener('click', openModal);
+      if (closeDiagnosticBtn) closeDiagnosticBtn.addEventListener('click', closeModal);
+      if (cancelDiagnosticBtn) cancelDiagnosticBtn.addEventListener('click', closeModal);
+
+      // Semester pill button state toggle
+      const semButtons = document.querySelectorAll('.sem-btn');
+      semButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          semButtons.forEach(b => {
+            b.className = 'sem-btn py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-750 text-zinc-300 border border-white/[0.05] transition text-center font-mono';
+          });
+          btn.className = 'sem-btn py-2 rounded-lg bg-emerald-500 text-obsidian-950 font-bold border border-emerald-400 shadow-sm transition text-center font-mono';
+        });
+      });
+
+      // Execute DAG recalculation with notification simulation
+      const executeDAG = () => {
+        const originalText = runDagBtn.innerHTML;
+        runDagBtn.innerHTML = `
+          <svg class="animate-spin w-3.5 h-3.5 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>Resolviendo...</span>
+        `;
+        runDagBtn.disabled = true;
+
+        setTimeout(() => {
+          runDagBtn.innerHTML = originalText;
+          runDagBtn.disabled = false;
+          closeModal();
+          
+          // Flash suggestion glow on recommended nodes
+          const targetNode = document.getElementById('node-cc201');
+          if (targetNode) {
+            targetNode.classList.add('ring-4', 'ring-emerald-400');
+            setTimeout(() => {
+              targetNode.classList.remove('ring-4', 'ring-emerald-400');
+            }, 1200);
+          }
+        }, 800);
+      };
+
+      if (submitDiagnosticBtn) submitDiagnosticBtn.addEventListener('click', executeDAG);
+      if (runDagBtn) runDagBtn.addEventListener('click', executeDAG);
+    });
+  </script>
+<!-- END: Interactive Logic Scripts -->
+</body></html>
