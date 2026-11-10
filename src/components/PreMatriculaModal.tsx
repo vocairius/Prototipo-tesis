@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Course } from '../types/curriculum';
-import { Check, AlertCircle, Clock, Trash2, CalendarCheck, ShieldCheck, X } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { AlertCircle, CalendarCheck, Check, CheckCircle2, Trash2, X } from 'lucide-react';
 
 interface PreMatriculaModalProps {
   isOpen: boolean;
   onClose: () => void;
   enrolledCourses: Course[];
   onRemoveCourse: (courseId: string) => void;
-  onAddCourse: (courseId: string) => void;
-  availableCourses: Course[];
   totalCredits: number;
+  currentSemester: number;
+  blockedCourses: Course[];
+  allCourses: Course[];
+  isConfirmed: boolean;
+  onConfirm: () => void;
 }
 
 export const PreMatriculaModal: React.FC<PreMatriculaModalProps> = ({
@@ -18,178 +20,167 @@ export const PreMatriculaModal: React.FC<PreMatriculaModalProps> = ({
   onClose,
   enrolledCourses,
   onRemoveCourse,
-  totalCredits
+  totalCredits,
+  currentSemester,
+  blockedCourses,
+  allCourses,
+  isConfirmed,
+  onConfirm
 }) => {
-  const [isConfirmed, setIsConfirmed] = useState(false);
-
   if (!isOpen) return null;
 
-  const handleConfirm = () => {
-    setIsConfirmed(true);
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    } catch (e) {
-      // safe fallback
-    }
-    setTimeout(() => {
-      // keep confirmed state
-    }, 400);
-  };
-
-  const isUnderMin = totalCredits < 12;
-  const isOverMax = totalCredits > 18;
+  const coursesById = new Map(allCourses.map((course) => [course.id, course]));
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-[#111215] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+    <div
+      className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="matricula-title"
+    >
+      <div className="w-full max-w-xl max-h-[90vh] flex flex-col bg-[#252526] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="p-5 border-b border-white/[0.08] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#c4ee53]/15 border border-[#c4ee53]/30 flex items-center justify-center text-[#c4ee53]">
               <CalendarCheck className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">Pre-matrícula Académica 2025-1</h3>
-              <p className="text-xs text-zinc-400">Revisión de asignaturas inscritas en ruta DAG</p>
+              <h2 id="matricula-title" className="text-sm font-semibold text-white">
+                Matrícula · Semestre {currentSemester}
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Revisa las materias disponibles antes de aceptar.
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-[#16181d] transition">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-[#383838] transition"
+            aria-label="Cerrar matrícula"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
-          {/* Credit Workload Gauge */}
-          <div className="p-3.5 rounded-xl bg-[#16181d] border border-white/[0.06] space-y-2">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-zinc-300">Carga Matriculada</span>
-              <span className="font-mono font-bold text-white text-sm">{totalCredits} / 18 CR</span>
-            </div>
-            <div className="w-full bg-[#1c1e24] h-2.5 rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  isUnderMin
-                    ? 'bg-amber-400'
-                    : isOverMax
-                    ? 'bg-rose-500'
-                    : 'bg-[#c4ee53]'
-                }`}
-                style={{ width: `${Math.min(100, (totalCredits / 18) * 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
-              <span>Mínimo: 12 CR</span>
-              <span className="text-emerald-400">Rango Óptimo: 14 - 16 CR</span>
-              <span>Máximo: 18 CR</span>
-            </div>
-
-            {isUnderMin && (
-              <p className="text-[11px] text-amber-400 flex items-center gap-1.5 pt-1">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                Carga inferior al mínimo regular (12 créditos). Considera inscribir otra asignatura.
-              </p>
-            )}
-            {isOverMax && (
-              <p className="text-[11px] text-rose-400 flex items-center gap-1.5 pt-1">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                Sobrecarga crediticia: se requiere autorización de dirección de carrera para &gt; 18 CR.
-              </p>
-            )}
-          </div>
-
-          {/* Enrolled Courses List */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-zinc-400 text-[11px]">
-              <span>Asignaturas Seleccionadas ({enrolledCourses.length})</span>
-              <span>Créditos</span>
-            </div>
-
-            {enrolledCourses.length === 0 ? (
-              <div className="text-center py-6 text-zinc-500 text-xs">
-                No hay asignaturas en la pre-matrícula. Selecciona cursos en el Canvas o Malla.
-              </div>
-            ) : (
-              enrolledCourses.map((course) => (
-                <div
-                  key={course.id}
-                  className="p-3 rounded-xl bg-[#16181d] border border-white/[0.05] flex items-center justify-between hover:border-emerald-500/30 transition group"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-emerald-400 font-semibold text-[11px]">
-                        {course.code}
-                      </span>
-                      <h4 className="font-medium text-white">{course.title}</h4>
-                    </div>
-                    {course.schedule && (
-                      <div className="flex items-center gap-1 text-[10px] text-zinc-400">
-                        <Clock className="w-3 h-3 text-cyan-400" />
-                        <span>{course.schedule}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs font-semibold text-white px-2 py-1 rounded bg-[#1c1e24] border border-white/[0.05]">
-                      {course.credits} CR
-                    </span>
-                    <button
-                      onClick={() => onRemoveCourse(course.id)}
-                      className="text-zinc-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-[#1c1e24] transition"
-                      title="Quitar de pre-matrícula"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Schedule conflict validation check */}
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-xs text-emerald-300">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Validación de horario: 0 cruces o solapamientos detectados en la malla semanal.</span>
-          </div>
-
+        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto text-xs">
           {isConfirmed && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-400 text-center space-y-1">
-              <p className="font-bold text-white text-xs">¡Pre-matrícula Confirmada con Éxito!</p>
-              <p className="text-[11px] text-emerald-300">
-                Se ha generado el folio digital #DAG-2025-8842 para el ciclo académico 2025-1.
+            <div
+              className="matricula-success flex flex-col items-center gap-2 rounded-xl border border-[#c4ee53]/40 bg-[#c4ee53]/10 p-5 text-center"
+              role="status"
+              data-purpose="matricula-success"
+            >
+              <div className="matricula-check w-12 h-12 rounded-full bg-[#c4ee53] text-[#1e1e1e] flex items-center justify-center">
+                <Check className="w-7 h-7 stroke-[3]" />
+              </div>
+              <p className="text-sm font-semibold text-white">¡Matrícula completada!</p>
+              <p className="text-xs text-zinc-300">
+                {enrolledCourses.length} materias quedaron inscritas para el semestre {currentSemester}.
               </p>
             </div>
           )}
+
+          <div className="flex items-center justify-between rounded-xl bg-[#2d2d30] border border-white/[0.06] p-4">
+            <div>
+              <span className="block text-zinc-300 font-medium">Materias seleccionadas</span>
+              <span className="text-[11px] text-zinc-500">
+                {enrolledCourses.length} cursos para el semestre {currentSemester}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="block text-lg font-bold font-mono text-white">{totalCredits} CR</span>
+              <span className="text-[10px] text-zinc-500">créditos totales</span>
+            </div>
+          </div>
+
+          {enrolledCourses.length > 0 ? (
+            <div className="space-y-2">
+              {enrolledCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="p-3 rounded-xl bg-[#2d2d30] border border-white/[0.06] flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[#c4ee53] font-semibold text-[11px] shrink-0">
+                        {course.code}
+                      </span>
+                      <h3 className="font-medium text-white truncate">{course.title}</h3>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      {course.semester === currentSemester ? `Semestre ${currentSemester}` : 'Materia pendiente'} ·{' '}
+                      {course.credits} créditos
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-xs font-semibold text-white px-2 py-1 rounded bg-[#1e1e1e]">
+                      {course.credits} CR
+                    </span>
+                    {!isConfirmed && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveCourse(course.id)}
+                        className="text-zinc-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-[#1e1e1e] transition"
+                        title="Quitar de la matrícula"
+                        aria-label={`Quitar ${course.title}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-5 text-zinc-400">
+              No hay materias matriculables. Revisa las materias bloqueadas y sus prerrequisitos.
+            </p>
+          )}
+
+          {blockedCourses.length > 0 && (
+            <section className="space-y-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3">
+              <h3 className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                <AlertCircle className="w-4 h-4" />
+                {blockedCourses.length} materias no disponibles por prerrequisitos
+              </h3>
+              <ul className="space-y-1.5">
+                {blockedCourses.map((course) => {
+                  const missingPrerequisites = course.prerequisites
+                    .map((id) => coursesById.get(id))
+                    .filter((prerequisite) => prerequisite?.status !== 'Aprobado')
+                    .map((prerequisite) => prerequisite?.title ?? 'Prerrequisito pendiente');
+                  return (
+                    <li key={course.id} className="text-[11px] text-zinc-400">
+                      <span className="text-zinc-200">{course.title}</span>
+                      {missingPrerequisites.length > 0 && (
+                        <span> · Falta: {missingPrerequisites.join(', ')}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-[#131418] border-t border-white/[0.08] flex items-center justify-between">
-          <span className="text-xs text-zinc-400">
-            Total a inscribir: <strong className="text-white font-mono">{totalCredits} CR</strong>
-          </span>
-          <div className="flex items-center space-x-2">
+        <div className="p-4 border-t border-white/[0.08] flex items-center justify-between gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-zinc-300 hover:bg-[#383838] transition cursor-pointer"
+          >
+            {isConfirmed ? 'Cerrar' : 'Volver a la malla'}
+          </button>
+          {!isConfirmed && (
             <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white transition cursor-pointer"
+              type="button"
+              onClick={onConfirm}
+              disabled={enrolledCourses.length === 0}
+              className="px-4 py-2.5 rounded-lg bg-[#c4ee53] hover:bg-[#d2f47d] disabled:opacity-40 text-[#1e1e1e] font-semibold transition cursor-pointer disabled:cursor-not-allowed"
             >
-              {isConfirmed ? 'Cerrar' : 'Volver al Canvas'}
+              Aceptar matrícula · {totalCredits} CR
             </button>
-            {!isConfirmed && (
-              <button
-                onClick={handleConfirm}
-                disabled={enrolledCourses.length === 0}
-                className="px-5 py-2 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 font-bold text-xs transition shadow flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                <Check className="w-4 h-4 stroke-[2.5] text-emerald-700" />
-                <span>Confirmar Pre-matrícula</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

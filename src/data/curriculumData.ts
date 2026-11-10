@@ -198,7 +198,7 @@ export const INITIAL_COURSES: Course[] = rawCourses.map((course) => {
     program: 'Multimedia',
     position: {
       x: 40 + (semestre - 1) * 350,
-      y: 50 + indice * 145
+      y: 50 + indice * 190
     },
     colorTheme: course.repetido ? 'violet' : area === AREA_NUCLEO_MULTIMEDIA ? 'violet' : 'cyan'
   } satisfies Course;

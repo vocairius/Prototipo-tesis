@@ -1,12 +1,54 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Course } from '../types/curriculum';
-import { Minus, Plus, RotateCcw, Lock } from 'lucide-react';
+import {
+  BookOpen,
+  Briefcase,
+  Calculator,
+  Camera,
+  Code2,
+  Database,
+  FlaskConical,
+  GraduationCap,
+  Languages,
+  Lock,
+  MonitorPlay,
+  Music2,
+  Network,
+  Palette,
+  PenTool,
+  Users,
+  type LucideIcon,
+  Minus,
+  Plus,
+  RotateCcw
+} from 'lucide-react';
+
+const getCourseIcon = (title: string): LucideIcon => {
+  if (/(matem|algebra|c[aá]lculo|estad[ií]stica|probabilidad|f[ií]sica)/i.test(title)) return Calculator;
+  if (/(base de datos|datos)/i.test(title)) return Database;
+  if (/(programaci[oó]n|computaci[oó]n|desarrollo|circuitos|electr[oó]nica)/i.test(title)) return Code2;
+  if (/(ingl[eé]s|idioma)/i.test(title)) return Languages;
+  if (/(dise[nñ]o|dibujo|animaci[oó]n|imagen|ilustraci[oó]n)/i.test(title)) return Palette;
+  if (/(fotograf[ií]a|c[aá]mara)/i.test(title)) return Camera;
+  if (/(video|multimedia|gr[aá]fica|interactiva)/i.test(title)) return MonitorPlay;
+  if (/(audio|sonido|m[uú]sica)/i.test(title)) return Music2;
+  if (/(proyecto|gesti[oó]n|pr[aá]ctica|empresa)/i.test(title)) return Briefcase;
+  if (/(human[ií]stica|bienestar|comunicaci[oó]n)/i.test(title)) return Users;
+  if (/(ciencia|qu[ií]mica)/i.test(title)) return FlaskConical;
+  if (/(redes|se[nñ]ales)/i.test(title)) return Network;
+  if (/(guion|escritura|literatura)/i.test(title)) return PenTool;
+  if (/(ingenier[ií]a|formaci[oó]n)/i.test(title)) return GraduationCap;
+  return BookOpen;
+};
 
 interface CanvasAreaProps {
   courses: Course[];
   selectedCourseId: string;
   currentSemester: number;
   showUnlockRoute: boolean;
+  simulationMode: boolean;
+  recommendedCourseIds: string[];
+  failedCourseIds: string[];
   onSelectCourse: (courseId: string) => void;
   enrolledCourseIds: string[];
   theme: 'dark' | 'light';
@@ -17,6 +59,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   selectedCourseId,
   currentSemester,
   showUnlockRoute,
+  simulationMode,
+  recommendedCourseIds,
+  failedCourseIds,
   onSelectCourse,
   enrolledCourseIds,
   theme
@@ -28,6 +73,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
 
   // Node positions map so users can drag nodes if desired
   const [positions, setPositions] = useState<{ [id: string]: { x: number; y: number } }>(() => {
@@ -97,7 +143,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
   // Zoom controls
   const handleZoomIn = () => setZoom((z) => Math.min(1.8, +(z + 0.1).toFixed(1)));
-  const handleZoomOut = () => setZoom((z) => Math.max(0.6, +(z - 0.1).toFixed(1)));
+  const handleZoomOut = () => setZoom((z) => Math.max(0.4, +(z - 0.1).toFixed(1)));
   const handleRecenter = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -105,7 +151,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
   // Node dimension constants
   const NODE_WIDTH = 240;
-  const NODE_HEIGHT = 100;
+  const NODE_HEIGHT = 150;
   const GRAPH_INSET_X = 180;
 
   const selectedCourse = courses.find((course) => course.id === selectedCourseId);
@@ -126,15 +172,34 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     return route;
   }, [courses, selectedCourseId, showUnlockRoute]);
 
+  const simulationUnlockCourseIds = useMemo(() => {
+    if (!simulationMode) return new Set<string>();
+
+    const coursesById = new Map(courses.map((course) => [course.id, course]));
+    const unlocked = new Set<string>();
+    const pending = [...recommendedCourseIds];
+
+    while (pending.length > 0) {
+      const courseId = pending.pop();
+      if (!courseId || unlocked.has(courseId)) continue;
+      unlocked.add(courseId);
+      pending.push(...(coursesById.get(courseId)?.unlocks ?? []));
+    }
+
+    return unlocked;
+  }, [courses, recommendedCourseIds, simulationMode]);
+
   const visibleCourses = useMemo(
     () =>
-      courses.filter(
-        (course) =>
-          course.semester === currentSemester ||
-          course.id === selectedCourseId ||
-          unlockRouteCourseIds.has(course.id)
-      ),
-    [courses, currentSemester, selectedCourseId, unlockRouteCourseIds]
+      simulationMode
+        ? courses.filter(
+            (course) =>
+              course.semester === currentSemester ||
+              failedCourseIds.includes(course.id) ||
+              (course.semester > currentSemester && simulationUnlockCourseIds.has(course.id))
+          )
+        : courses,
+    [courses, currentSemester, failedCourseIds, simulationMode, simulationUnlockCourseIds]
   );
   const visibleCourseIds = useMemo(
     () => new Set(visibleCourses.map((course) => course.id)),
@@ -147,6 +212,38 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         : 0,
     [positions, visibleCourses]
   );
+
+  useEffect(() => {
+    if (!simulationMode || !containerRef.current) return;
+
+    const focusCourses = courses.filter(
+      (course) => course.semester === currentSemester || failedCourseIds.includes(course.id)
+    );
+    if (focusCourses.length === 0) return;
+
+    const focusPositions = focusCourses.map((course) => course.position);
+    const minX = Math.min(...focusPositions.map((position) => position.x - graphOffsetX + GRAPH_INSET_X));
+    const maxX = Math.max(
+      ...focusPositions.map((position) => position.x - graphOffsetX + GRAPH_INSET_X + NODE_WIDTH)
+    );
+    const minY = Math.min(...focusPositions.map((position) => position.y));
+    const maxY = Math.max(...focusPositions.map((position) => position.y + NODE_HEIGHT));
+    const viewport = containerRef.current;
+    const focusWidth = maxX - minX;
+    const focusHeight = maxY - minY;
+    const fittedZoom = Math.max(
+      0.4,
+      Math.min(1, (viewport.clientWidth - 80) / focusWidth, (viewport.clientHeight - 100) / focusHeight)
+    );
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    setZoom(fittedZoom);
+    setPan({
+      x: Math.round(viewport.clientWidth / 2 - centerX * fittedZoom),
+      y: Math.round(viewport.clientHeight / 2 - centerY * fittedZoom)
+    });
+  }, [courses, currentSemester, failedCourseIds, graphOffsetX, simulationMode]);
 
   // Keep the focused semester and its unlock route framed in the virtual canvas.
   const { canvasWidth, canvasHeight } = useMemo(() => {
@@ -173,19 +270,18 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       course.prerequisites
         .filter(
           (prerequisiteId) =>
-            visibleCourseIds.has(prerequisiteId) && visibleCourseIds.has(course.id)
+            visibleCourseIds.has(prerequisiteId) &&
+            visibleCourseIds.has(course.id) &&
+            (!simulationMode ||
+              (courses.find((item) => item.id === prerequisiteId)?.semester ?? 0) >= currentSemester)
         )
         .map((prerequisiteId) => {
-          const prerequisite = courses.find((item) => item.id === prerequisiteId);
-          const isApproved = prerequisite?.status === 'Aprobado';
-
           return {
             from: prerequisiteId,
             to: course.id,
-            type: isApproved ? 'approved' : 'dashed-neutral',
             isUnlockRoute:
               (prerequisiteId === selectedCourseId || unlockRouteCourseIds.has(prerequisiteId)) &&
-              unlockRouteCourseIds.has(course.id)
+              (course.id === selectedCourseId || unlockRouteCourseIds.has(course.id))
           };
         })
     );
@@ -226,7 +322,16 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         midY
       };
     });
-  }, [courses, graphOffsetX, positions, selectedCourseId, unlockRouteCourseIds, visibleCourseIds]);
+  }, [
+    courses,
+    currentSemester,
+    graphOffsetX,
+    selectedCourseId,
+    simulationMode,
+    simulationUnlockCourseIds,
+    unlockRouteCourseIds,
+    visibleCourseIds
+  ]);
 
   // Highlight check
   const isNodeConnectedToSelected = (courseId: string) => {
@@ -248,16 +353,20 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       id="graph-viewport"
     >
       <div
-        className="absolute top-4 left-20 z-20 flex items-center gap-3 rounded-xl border border-white/[0.1] bg-[#111215]/90 px-3 py-2 text-xs shadow-xl backdrop-blur"
+        className="absolute top-4 left-4 z-20 flex max-w-[125px] flex-col gap-1 rounded-xl border border-white/[0.1] bg-[#111215]/90 px-3 py-2 text-xs shadow-xl backdrop-blur"
         aria-live="polite"
       >
-        <span className="font-semibold text-white">Semestre {currentSemester}</span>
+        <span className="font-semibold text-white">
+          {simulationMode ? 'Simulación' : 'Exploración'} · Semestre {currentSemester}
+        </span>
         <span className="text-zinc-400">
-          {unlockRouteCourseIds.size > 0
-            ? `Ruta de desbloqueo: ${unlockRouteCourseIds.size} materias`
-            : showUnlockRoute
-              ? 'Esta materia no desbloquea otras'
-              : 'Haz clic en una materia para ver su ruta'}
+          {simulationMode
+            ? `${recommendedCourseIds.length} materias disponibles para matricular`
+            : unlockRouteCourseIds.size > 0
+              ? `Ruta de desbloqueo: ${unlockRouteCourseIds.size} materias`
+              : showUnlockRoute
+                ? 'Esta materia no desbloquea otras'
+                : 'Haz clic en una materia para ver su ruta'}
         </span>
       </div>
 
@@ -279,25 +388,24 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible" xmlns="http://www.w3.org/2000/svg">
             {/* Render dynamic Bezier edges */}
             {edges.map((e, idx) => {
-              const isApproved = e.type === 'approved';
-
               return (
                 <g key={`edge-${idx}`}>
                   <path
                     d={e.pathData}
                     fill="none"
-                    stroke={e.isUnlockRoute ? '#4e6cef' : isApproved ? '#c4ee53' : '#626267'}
-                    strokeWidth={e.isUnlockRoute || isApproved ? 2.5 : 1.5}
-                    strokeDasharray={e.isUnlockRoute || isApproved ? undefined : '3 5'}
-                    strokeOpacity={e.isUnlockRoute || isApproved ? 1 : 0.35}
+                    stroke={e.isUnlockRoute ? '#4e6cef' : '#626267'}
+                    strokeWidth={e.isUnlockRoute ? 2.5 : 1.5}
+                    strokeDasharray={e.isUnlockRoute ? undefined : '3 5'}
+                    strokeOpacity={e.isUnlockRoute ? 0.95 : 0.12}
                     className="transition-all duration-200"
                   />
                   {/* Endpoint connection dot */}
                   <circle
                     cx={e.x2}
                     cy={e.y2}
-                    r={isApproved ? 4 : 3}
-                    fill={e.isUnlockRoute ? '#4e6cef' : isApproved ? '#c4ee53' : '#555b66'}
+                    r={e.isUnlockRoute ? 4 : 3}
+                    fill={e.isUnlockRoute ? '#4e6cef' : '#555b66'}
+                    opacity={e.isUnlockRoute ? 1 : 0.2}
                     className="transition-all"
                   />
                 </g>
@@ -357,42 +465,47 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             .map((course) => {
               const pos = positions[course.id];
               const isSelected = selectedCourseId === course.id;
+              const isHovered = hoveredCourseId === course.id;
               const isEnrolled = enrolledCourseIds.includes(course.id);
+              const isFailedCourse = failedCourseIds.includes(course.id);
+              const isUpcomingUnlock =
+                simulationMode &&
+                course.semester > currentSemester &&
+                simulationUnlockCourseIds.has(course.id);
               const isInUnlockRoute = unlockRouteCourseIds.has(course.id);
+              const isRecommended = recommendedCourseIds.includes(course.id);
 
               // Styling per course state
               let borderClass = 'border-white/[0.08]';
               let glowClass = '';
               let badgeColor = 'bg-zinc-800 text-zinc-400 border-zinc-700';
 
-              if (isInUnlockRoute) {
+              if (isSelected || isHovered) {
+                borderClass = 'border-[#c4ee53]';
+                glowClass = 'glow-active';
+                badgeColor = 'bg-[#c4ee53]/20 text-[#c4ee53] border-[#c4ee53]/40';
+              } else if (isFailedCourse) {
+                borderClass = 'border-amber-400/60';
+                badgeColor = 'bg-amber-400/15 text-amber-200 border-amber-400/30';
+              } else if (isInUnlockRoute) {
                 borderClass = 'border-[#4e6cef]';
-                glowClass = 'glow-cyan';
+                badgeColor = 'bg-[#4e6cef]/20 text-[#aebcff] border-[#4e6cef]/40';
+              } else if (isRecommended) {
+                badgeColor = 'bg-[#c4ee53]/20 text-[#c4ee53] border-[#c4ee53]/40';
+              } else if (isUpcomingUnlock) {
                 badgeColor = 'bg-[#4e6cef]/20 text-[#aebcff] border-[#4e6cef]/40';
               } else if (course.isBottleneck) {
-                borderClass = 'border-amber-500/50 hover:border-amber-400';
-                glowClass = 'glow-warning';
                 badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
               } else if (isEnrolled || course.status === 'Inscrito') {
-                borderClass = 'border-[#4e6cef]/50 hover:border-[#4e6cef]';
                 badgeColor = 'bg-[#4e6cef]/20 text-[#aebcff] border-[#4e6cef]/40';
               } else if (course.status === 'Aprobado') {
-                borderClass = 'border-[#c4ee53]/50 hover:border-[#c4ee53]';
                 badgeColor = 'bg-[#c4ee53]/15 text-[#c4ee53] border-[#c4ee53]/30';
-              } else if (course.status === 'Bloqueado') {
-                borderClass = 'border-zinc-800/80';
               }
 
-              // Color theme for shortCode badge (P1, P2, PO, etc.)
+              // Keep the icon tile neutral until a course is selected or previewed.
               let shortBadgeBg = 'bg-zinc-800 text-zinc-300 border-zinc-700';
-              if (course.colorTheme === 'emerald') {
+              if (isSelected || isHovered) {
                 shortBadgeBg = 'bg-[#c4ee53]/15 border-[#c4ee53]/30 text-[#c4ee53]';
-              } else if (course.colorTheme === 'cyan') {
-                shortBadgeBg = 'bg-[#4e6cef]/20 border-[#4e6cef]/40 text-[#aebcff]';
-              } else if (course.colorTheme === 'amber') {
-                shortBadgeBg = 'bg-amber-500/20 border-amber-500/40 text-amber-400';
-              } else if (course.colorTheme === 'violet') {
-                shortBadgeBg = 'bg-violet-500/20 border-violet-500/40 text-violet-400';
               }
 
               return (
@@ -400,16 +513,26 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                   key={course.id}
                   id={`node-${course.id.toLowerCase()}`}
                   onMouseDown={(e) => handleNodeMouseDown(e, course.id)}
+                  onMouseEnter={() => setHoveredCourseId(course.id)}
+                  onMouseLeave={() => setHoveredCourseId(null)}
                   style={{
                     top: `${pos.y}px`,
                     left: `${pos.x - graphOffsetX + GRAPH_INSET_X}px`,
                     width: `${NODE_WIDTH}px`
                   }}
-                  className={`graph-card absolute rounded-2xl p-4 shadow-xl cursor-pointer transition duration-150 transform hover:-translate-y-0.5 group ${
+                  className={`graph-card absolute min-h-[150px] rounded-2xl p-4 shadow-xl cursor-pointer transition duration-200 transform group ${
                     theme === 'dark' ? 'bg-[#16181d]' : 'bg-white shadow-sm'
                   } ${borderClass} ${glowClass} ${
                     isSelected
                       ? 'ring-2 ring-[#4e6cef] ring-offset-2 ring-offset-[#1e1e1e] z-30'
+                      : isHovered
+                      ? 'graph-card-hover-preview z-40'
+                      : simulationMode
+                      ? isRecommended || isFailedCourse
+                        ? 'opacity-80 z-20'
+                        : isUpcomingUnlock
+                          ? 'opacity-55 z-10'
+                          : 'opacity-[0.16] z-10'
                       : isNodeConnectedToSelected(course.id)
                       ? 'opacity-100 z-20'
                       : course.semester !== currentSemester
@@ -459,9 +582,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-2.5">
                       <div
-                        className={`w-8 h-8 rounded-xl border flex items-center justify-center font-mono text-xs font-bold ${shortBadgeBg}`}
+                        className={`w-8 h-8 rounded-xl border flex items-center justify-center ${shortBadgeBg}`}
                       >
-                        {course.shortCode}
+                        {React.createElement(getCourseIcon(course.title), { className: 'w-4 h-4' })}
                       </div>
                       <div>
                         <span
@@ -488,11 +611,25 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     </div>
 
                     {/* Tag / Badge */}
-                    {course.status === 'Bloqueado' ? (
+                    {isHovered && !isSelected ? (
+                      <span className="graph-hover-badge text-[9px] px-1.5 py-0.5 rounded border border-[#c4ee53]/50 bg-[#c4ee53]/15 text-[#c4ee53] font-mono">
+                        PRESELECCIÓN
+                      </span>
+                    ) : course.status === 'Bloqueado' && !isFailedCourse ? (
                       <Lock className="w-3.5 h-3.5 text-zinc-500 mt-0.5" />
                     ) : (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded border font-mono ${badgeColor}`}>
-                        {course.tag || (course.status === 'Aprobado' ? 'OK' : 'DISP')}
+                        {failedCourseIds.includes(course.id)
+                          ? 'REPETIR'
+                          : isRecommended
+                            ? course.status === 'Inscrito'
+                              ? 'INSCRITA'
+                              : isEnrolled
+                              ? 'PREMATRICULADA'
+                              : 'MATRICULAR'
+                            : isUpcomingUnlock
+                              ? 'SIGUIENTE'
+                            : course.tag || (course.status === 'Aprobado' ? 'OK' : 'DISP')}
                       </span>
                     )}
                   </div>
@@ -525,7 +662,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                         <span className="text-zinc-400 truncate max-w-[120px]">
                           Req: <span className="text-zinc-200 font-mono">{course.prerequisites.join(', ')}</span>
                         </span>
-                        <span className="text-emerald-400 font-mono font-medium">Inscrito ({course.credits} CR)</span>
+                        <span className="text-emerald-400 font-mono font-medium">
+                          {course.status === 'Inscrito' ? 'Inscrito' : 'Pre-matriculado'} ({course.credits} CR)
+                        </span>
                       </>
                     ) : course.status === 'Bloqueado' ? (
                       <>

@@ -15,6 +15,9 @@ export default function App() {
   const [courses, setCourses] = useState<Course[]>(INITIAL_COURSES);
   const [isSemesterOnboardingOpen, setIsSemesterOnboardingOpen] = useState(true);
   const [currentSemester, setCurrentSemester] = useState(TOTAL_SEMESTRES[0] ?? 1);
+  const [isSimulationActive, setIsSimulationActive] = useState(false);
+  const [failedCourseIds, setFailedCourseIds] = useState<string[]>([]);
+  const [isMatriculaAccepted, setIsMatriculaAccepted] = useState(false);
   const [hasSelectedCourse, setHasSelectedCourse] = useState(false);
 
   // Abrir la malla con una materia que se pueda aprobar y consultar.
@@ -45,12 +48,17 @@ export default function App() {
   const coursesWithPrerequisiteStatus = useMemo(
     () =>
       courses.map((course) => {
-        if (course.status === 'Aprobado' || course.status === 'Bloqueado') return course;
+        if (course.status === 'Aprobado' || (!isSimulationActive && course.status === 'Bloqueado')) {
+          return course;
+        }
 
         const prerequisitesSatisfied = course.prerequisites.every((id) => approvedCourseIds.has(id));
+        const isEnrolled = enrolledCourseIds.includes(course.id);
         const status: Course['status'] = prerequisitesSatisfied
-          ? enrolledCourseIds.includes(course.id)
-            ? 'Inscrito'
+          ? isEnrolled
+            ? isMatriculaAccepted
+              ? 'Inscrito'
+              : 'Sugerido'
             : 'Disponible'
           : 'Bloqueado';
         return {
@@ -58,7 +66,7 @@ export default function App() {
           status
         };
       }),
-    [approvedCourseIds, courses, enrolledCourseIds]
+    [approvedCourseIds, courses, enrolledCourseIds, isMatriculaAccepted, isSimulationActive]
   );
 
   // Computed metrics
@@ -84,25 +92,30 @@ export default function App() {
     return coursesWithPrerequisiteStatus.filter((c) => enrolledCourseIds.includes(c.id));
   }, [coursesWithPrerequisiteStatus, enrolledCourseIds]);
 
-  const availableCoursesToEnroll = useMemo(() => {
-    return coursesWithPrerequisiteStatus.filter((c) => c.status === 'Disponible');
-  }, [coursesWithPrerequisiteStatus]);
-
-  const handleToggleEnrollCourse = (courseId: string) => {
-    setEnrolledCourseIds((prev) => {
-      if (prev.includes(courseId)) {
-        return prev.filter((id) => id !== courseId);
-      }
-      const course = coursesWithPrerequisiteStatus.find((item) => item.id === courseId);
-      return course?.status === 'Disponible' ? [...prev, courseId] : prev;
-    });
-  };
+  const recommendedCourseIds = useMemo(
+    () =>
+      isSimulationActive
+        ? coursesWithPrerequisiteStatus
+            .filter(
+              (course) =>
+                (course.status === 'Disponible' ||
+                  course.status === 'Sugerido' ||
+                  course.status === 'Inscrito') &&
+                (course.semester === currentSemester || failedCourseIds.includes(course.id))
+            )
+            .map((course) => course.id)
+        : [],
+    [coursesWithPrerequisiteStatus, currentSemester, failedCourseIds, isSimulationActive]
+  );
 
   const handleToggleCourseApproval = (courseId: string) => {
     const course = coursesWithPrerequisiteStatus.find((item) => item.id === courseId);
     if (
       !course ||
-      (course.status !== 'Aprobado' && course.status !== 'Disponible' && course.status !== 'Inscrito')
+      (course.status !== 'Aprobado' &&
+        course.status !== 'Disponible' &&
+        course.status !== 'Inscrito' &&
+        course.status !== 'Sugerido')
     ) {
       return;
     }
@@ -129,27 +142,72 @@ export default function App() {
     } else {
       setEnrolledCourseIds((previous) => previous.filter((id) => id !== courseId));
     }
+    setFailedCourseIds((previous) => previous.filter((id) => id !== courseId));
+    setIsMatriculaAccepted(false);
   };
 
-  const handleConfirmCurrentSemester = (semester: number) => {
+  const handleExploreCurriculum = () => {
+    setIsSimulationActive(false);
+    setIsSemesterOnboardingOpen(false);
+  };
+
+  const handleConfirmSimulation = (semester: number, failedIds: string[]) => {
+    const failedIdsSet = new Set(failedIds);
+    const approvedPreviousIds = new Set(
+      INITIAL_COURSES.filter((course) => course.semester < semester && !failedIdsSet.has(course.id)).map(
+        (course) => course.id
+      )
+    );
+    const nextEnrolledCourseIds = INITIAL_COURSES.filter(
+      (course) =>
+        (course.semester === semester || failedIdsSet.has(course.id)) &&
+        course.prerequisites.every((prerequisiteId) => approvedPreviousIds.has(prerequisiteId))
+    ).map((course) => course.id);
     setCurrentSemester(semester);
+    setIsSimulationActive(true);
+    setFailedCourseIds(failedIds);
     setCourses(
       INITIAL_COURSES.map((course) => ({
         ...course,
-        status: course.semester < semester ? 'Aprobado' : 'Disponible',
+        status: failedIdsSet.has(course.id)
+          ? 'Disponible'
+          : course.semester < semester
+            ? 'Aprobado'
+            : 'Disponible',
         grade: undefined
       }))
     );
-    setEnrolledCourseIds([]);
-    const firstCourseInSemester = INITIAL_COURSES.find((course) => course.semester === semester);
+    setEnrolledCourseIds(nextEnrolledCourseIds);
+    setIsMatriculaAccepted(false);
+    const firstCourseInSemester =
+      INITIAL_COURSES.find((course) => course.semester === semester) ??
+      INITIAL_COURSES.find((course) => failedIdsSet.has(course.id));
     if (firstCourseInSemester) setSelectedCourseId(firstCourseInSemester.id);
+    setHasSelectedCourse(false);
+    setIsInspectorOpen(true);
     setIsSemesterOnboardingOpen(false);
+  };
+
+  const handleAcceptMatricula = () => {
+    setIsMatriculaAccepted(true);
+  };
+
+  const handleToggleEnrollCourse = (courseId: string) => {
+    setEnrolledCourseIds((previous) => previous.filter((id) => id !== courseId));
+    setIsMatriculaAccepted(false);
   };
 
   return (
     <div className="app-shell h-screen w-screen flex flex-col overflow-hidden dark">
       {/* Top Header Navigation */}
-      <TopHeader />
+      <TopHeader
+        completedCredits={totalCompletedCredits}
+        totalCredits={totalDegreeCredits}
+        enrolledCount={enrolledCourses.length}
+        enrolledCredits={enrolledCredits}
+        isMatriculaAccepted={isMatriculaAccepted}
+        onReviewMatricula={() => setIsPreMatriculaModalOpen(true)}
+      />
 
       {/* Main Workspace Body */}
       <div className="flex-1 flex flex-col overflow-hidden relative" data-purpose="workspace-body">
@@ -165,6 +223,9 @@ export default function App() {
             selectedCourseId={selectedCourseId}
             currentSemester={currentSemester}
             showUnlockRoute={hasSelectedCourse}
+            simulationMode={isSimulationActive}
+            recommendedCourseIds={recommendedCourseIds}
+            failedCourseIds={failedCourseIds}
             onSelectCourse={(id) => {
               setSelectedCourseId(id);
               setHasSelectedCourse(true);
@@ -181,12 +242,8 @@ export default function App() {
             selectedCourse={selectedCourse}
             allCourses={coursesWithPrerequisiteStatus}
             enrolledCourseIds={enrolledCourseIds}
-            onToggleEnrollCourse={handleToggleEnrollCourse}
             onToggleCourseApproval={handleToggleCourseApproval}
-            totalCompletedCredits={totalCompletedCredits}
-            totalDegreeCredits={totalDegreeCredits}
             enrolledCredits={enrolledCredits}
-            onConfirmPreMatricula={() => setIsPreMatriculaModalOpen(true)}
             theme={theme}
           />
         </div>
@@ -198,9 +255,14 @@ export default function App() {
         onClose={() => setIsPreMatriculaModalOpen(false)}
         enrolledCourses={enrolledCourses}
         onRemoveCourse={handleToggleEnrollCourse}
-        onAddCourse={handleToggleEnrollCourse}
-        availableCourses={availableCoursesToEnroll}
         totalCredits={enrolledCredits}
+        currentSemester={currentSemester}
+        blockedCourses={coursesWithPrerequisiteStatus.filter(
+          (course) => course.semester === currentSemester && course.status === 'Bloqueado'
+        )}
+        allCourses={coursesWithPrerequisiteStatus}
+        isConfirmed={isMatriculaAccepted}
+        onConfirm={handleAcceptMatricula}
       />
 
       <CuellosBotellaModal
@@ -235,7 +297,8 @@ export default function App() {
         <SemesterOnboardingModal
           courses={INITIAL_COURSES}
           semesters={TOTAL_SEMESTRES}
-          onConfirm={handleConfirmCurrentSemester}
+          onExplore={handleExploreCurriculum}
+          onConfirm={handleConfirmSimulation}
         />
       )}
     </div>
