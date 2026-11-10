@@ -72,9 +72,32 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const [zoom, setZoom] = useState<number>(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [startPan, setStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{
+    type: 'pan' | 'node' | 'pinch';
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startPanX: number;
+    startPanY: number;
+    nodeId?: string;
+    dragOffsetX?: number;
+    dragOffsetY?: number;
+    startZoom?: number;
+    startDistance?: number;
+    graphX?: number;
+    graphY?: number;
+  } | null>(null);
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
+
+  const getCanvasPoint = (clientX: number, clientY: number) => {
+    const bounds = containerRef.current?.getBoundingClientRect();
+    return {
+      x: clientX - (bounds?.left ?? 0),
+      y: clientY - (bounds?.top ?? 0)
+    };
+  };
 
   // Node positions map so users can drag nodes if desired
   const [positions, setPositions] = useState<{ [id: string]: { x: number; y: number } }>(() => {
@@ -84,10 +107,6 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     });
     return initial;
   });
-
-  // Track dragged node
-  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Update positions if courses change
   useEffect(() => {
@@ -102,45 +121,142 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     });
   }, [courses]);
 
-  // Handle Canvas Panning
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Only pan if clicking canvas background (not a node)
-    if ((e.target as HTMLElement).closest('.graph-card')) return;
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button')) return;
+
+    const point = getCanvasPoint(event.clientX, event.clientY);
+    const isFirstPointer = pointers.current.size === 0;
+    pointers.current.set(event.pointerId, point);
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    const card = target.closest<HTMLElement>('.graph-card');
+    const startPanX = pan.x;
+    const startPanY = pan.y;
+
+    if (card) {
+      const courseId = card.dataset.purpose === 'graph-node'
+        ? card.id.replace('node-', '')
+        : '';
+      const course = courses.find((item) => item.id.toLowerCase() === courseId);
+      if (course && isFirstPointer) {
+        setSelectedSemester(null);
+        onSelectCourse(course.id);
+      }
+
+      if (event.pointerType !== 'touch' && course) {
+        const pos = positions[course.id] || { x: 0, y: 0 };
+        const dragOffsetX = (point.x - pan.x) / zoom - pos.x + graphOffsetX - GRAPH_INSET_X;
+        const dragOffsetY = (point.y - pan.y) / zoom - pos.y;
+        gesture.current = {
+          type: 'node',
+          pointerId: event.pointerId,
+          startX: point.x,
+          startY: point.y,
+          startPanX,
+          startPanY,
+          nodeId: course.id,
+          dragOffsetX,
+          dragOffsetY
+        };
+        return;
+      }
+    }
+
+    const activePointers = [...pointers.current.entries()];
+    if (activePointers.length >= 2) {
+      const [[, first], [, second]] = activePointers;
+      const midpointX = (first.x + second.x) / 2;
+      const midpointY = (first.y + second.y) / 2;
+      const distance = Math.hypot(first.x - second.x, first.y - second.y);
+      gesture.current = {
+        type: 'pinch',
+        pointerId: event.pointerId,
+        startX: point.x,
+        startY: point.y,
+        startPanX,
+        startPanY,
+        startZoom: zoom,
+        startDistance: Math.max(distance, 1),
+        graphX: (midpointX - pan.x) / zoom,
+        graphY: (midpointY - pan.y) / zoom
+      };
+      setIsPanning(true);
+      return;
+    }
+
+    gesture.current = {
+      type: 'pan',
+      pointerId: event.pointerId,
+      startX: point.x,
+      startY: point.y,
+      startPanX,
+      startPanY
+    };
     setIsPanning(true);
-    setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning) {
+  const handlePointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    const point = getCanvasPoint(event.clientX, event.clientY);
+    pointers.current.set(event.pointerId, point);
+
+    const currentGesture = gesture.current;
+    if (!currentGesture) return;
+
+    if (currentGesture.type === 'pinch' && pointers.current.size >= 2) {
+      const [first, second] = [...pointers.current.values()];
+      const midpointX = (first.x + second.x) / 2;
+      const midpointY = (first.y + second.y) / 2;
+      const distance = Math.hypot(first.x - second.x, first.y - second.y);
+      const nextZoom = Math.min(
+        1.8,
+        Math.max(0.4, (currentGesture.startZoom ?? zoom) * distance / (currentGesture.startDistance ?? distance))
+      );
+      setZoom(nextZoom);
       setPan({
-        x: e.clientX - startPan.x,
-        y: e.clientY - startPan.y
+        x: midpointX - (currentGesture.graphX ?? 0) * nextZoom,
+        y: midpointY - (currentGesture.graphY ?? 0) * nextZoom
       });
-    } else if (draggingNodeId) {
-      const newX = (e.clientX - pan.x) / zoom - dragOffset.x + graphOffsetX - GRAPH_INSET_X;
-      const newY = (e.clientY - pan.y) / zoom - dragOffset.y;
+    } else if (currentGesture.type === 'pan') {
+      setPan({
+        x: currentGesture.startPanX + point.x - currentGesture.startX,
+        y: currentGesture.startPanY + point.y - currentGesture.startY
+      });
+    } else if (currentGesture.type === 'node' && currentGesture.nodeId) {
+      const newX =
+        (point.x - pan.x) / zoom -
+        (currentGesture.dragOffsetX ?? 0) +
+        graphOffsetX -
+        GRAPH_INSET_X;
+      const newY = (point.y - pan.y) / zoom - (currentGesture.dragOffsetY ?? 0);
       setPositions((prev) => ({
         ...prev,
-        [draggingNodeId]: { x: Math.max(0, Math.round(newX)), y: Math.max(0, Math.round(newY)) }
+        [currentGesture.nodeId!]: {
+          x: Math.max(0, Math.round(newX)),
+          y: Math.max(0, Math.round(newY))
+        }
       }));
     }
   };
 
-  const handleMouseUp = () => {
-    setIsPanning(false);
-    setDraggingNodeId(null);
-  };
+  const handlePointerUp = (event: React.PointerEvent<HTMLElement>) => {
+    pointers.current.delete(event.pointerId);
 
-  const handleNodeMouseDown = (e: React.MouseEvent, courseId: string) => {
-    e.stopPropagation();
-    setSelectedSemester(null);
-    onSelectCourse(courseId);
-    setDraggingNodeId(courseId);
-    const pos = positions[courseId] || { x: 0, y: 0 };
-    setDragOffset({
-      x: (e.clientX - pan.x) / zoom - pos.x + graphOffsetX - GRAPH_INSET_X,
-      y: (e.clientY - pan.y) / zoom - pos.y
-    });
+    if (pointers.current.size === 1) {
+      const [remainingPointerId, point] = [...pointers.current.entries()][0];
+      gesture.current = {
+        type: 'pan',
+        pointerId: remainingPointerId,
+        startX: point.x,
+        startY: point.y,
+        startPanX: pan.x,
+        startPanY: pan.y
+      };
+    } else if (pointers.current.size === 0) {
+      gesture.current = null;
+      setIsPanning(false);
+    }
   };
 
   // Zoom controls
@@ -363,10 +479,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   return (
     <main
       ref={containerRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      className={`flex-1 h-full relative overflow-hidden select-none cursor-grab active:cursor-grabbing ${
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className={`flex-1 h-full relative overflow-hidden select-none touch-none ${
+        isPanning ? 'cursor-grabbing' : 'cursor-grab'
+      } ${
         theme === 'dark' ? 'bg-[#1e1e1e]' : 'bg-[#f3f3f3]'
       }`}
       data-purpose="node-graph-canvas"
@@ -392,7 +511,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       {/* Zoomable & Pannable Virtual Graph Area */}
       <div
-        className="w-full h-full transform-gpu transition-transform duration-75 origin-top-left"
+        className={`w-full h-full transform-gpu origin-top-left ${
+          isPanning ? 'transition-none' : 'transition-transform duration-75'
+        }`}
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
         }}
@@ -436,7 +557,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                 onClick={() =>
                   setSelectedSemester((previous) => (previous === semester ? null : semester))
                 }
-                className={`absolute z-10 flex h-8 items-center rounded-lg border px-3 text-xs font-semibold transition hover:border-[#c4ee53]/60 hover:text-[#c4ee53] ${headerClass}`}
+                className={`absolute z-10 flex h-10 items-center rounded-lg border px-3 text-xs font-semibold transition hover:border-[#c4ee53]/60 hover:text-[#c4ee53] md:h-8 ${headerClass}`}
                 style={headerStyle}
               >
                 Semestre {semester}
@@ -578,7 +699,6 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                 <div
                   key={course.id}
                   id={`node-${course.id.toLowerCase()}`}
-                  onMouseDown={(e) => handleNodeMouseDown(e, course.id)}
                   onMouseEnter={() => setHoveredCourseId(course.id)}
                   onMouseLeave={() => setHoveredCourseId(null)}
                   style={{
@@ -769,8 +889,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       >
         <button
           onClick={handleZoomOut}
-          className="w-7 h-7 rounded-lg hover:bg-[#16181d] flex items-center justify-center text-zinc-400 hover:text-white transition active:scale-95 cursor-pointer"
-          title="Zoom out"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-[#16181d] hover:text-white active:scale-95 md:h-7 md:w-7"
+          aria-label="Alejar el grafo"
         >
           <Minus className="w-3.5 h-3.5" />
         </button>
@@ -781,8 +901,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
         <button
           onClick={handleZoomIn}
-          className="w-7 h-7 rounded-lg hover:bg-[#16181d] flex items-center justify-center text-zinc-400 hover:text-white transition active:scale-95 cursor-pointer"
-          title="Zoom in"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-[#16181d] hover:text-white active:scale-95 md:h-7 md:w-7"
+          aria-label="Acercar el grafo"
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
@@ -791,7 +911,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
         <button
           onClick={handleRecenter}
-          className="px-2 py-1 rounded-md text-[11px] text-zinc-400 hover:text-white hover:bg-[#16181d] transition flex items-center gap-1 active:scale-95 cursor-pointer"
+          className="flex min-h-11 items-center gap-1 rounded-md px-3 text-[11px] text-zinc-400 transition hover:bg-[#16181d] hover:text-white active:scale-95 md:min-h-0 md:px-2 md:py-1"
+          aria-label="Centrar el grafo"
         >
           <RotateCcw className="w-3 h-3" />
           <span>Recenter</span>
