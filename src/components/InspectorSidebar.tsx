@@ -95,7 +95,7 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
           {/* Progress Bar */}
           <div className="w-full bg-[#1c1e24] h-2 rounded-full overflow-hidden p-[1px] border border-white/[0.05]">
             <div
-              className="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-500"
+              className="bg-[#c4ee53] h-full rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

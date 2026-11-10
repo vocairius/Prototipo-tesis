@@ -25,7 +25,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-[#111215] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center space-x-2.5">

@@ -2,39 +2,39 @@
 
 @layer base {
   :root {
-    --bg-obsidian-950: #0b0c0e;
-    --bg-obsidian-900: #111215;
-    --bg-obsidian-850: #131418;
-    --bg-obsidian-800: #16181d;
-    --bg-obsidian-750: #1c1e24;
-    --bg-obsidian-700: #232630;
-    --bg-obsidian-600: #2e323e;
+    --bg-obsidian-950: #1e1e1e;
+    --bg-obsidian-900: #252526;
+    --bg-obsidian-850: #252526;
+    --bg-obsidian-800: #2d2d30;
+    --bg-obsidian-750: #333337;
+    --bg-obsidian-700: #383838;
+    --bg-obsidian-600: #45454a;
+    --app-accent-blue: #4e6cef;
+    --app-accent-lime: #c4ee53;
   }
 }
 
-/* Subtle dot grid matrix inspired by modern devtools and node graphs */
 .bg-dot-grid {
-  background-size: 24px 24px;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-color: #1e1e1e;
+  background-image: none;
 }
 
 .bg-dot-grid-light {
-  background-size: 24px 24px;
-  background-image: radial-gradient(circle, rgba(15, 23, 42, 0.12) 1px, transparent 1px);
+  background-color: #f3f3f3;
+  background-image: none;
 }
 
-/* Custom glow effects for active nodes */
 .glow-active {
-  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.5), 0 8px 24px -4px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 0 1px rgba(196, 238, 83, 0.45);
 }
 .glow-warning {
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 8px 24px -4px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.45);
 }
 .glow-cyan {
-  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.5), 0 8px 24px -4px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 0 0 1px rgba(78, 108, 239, 0.45);
 }
 .glow-violet {
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.5), 0 8px 24px -4px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.45);
 }
 
 /* Smooth transition for interactive panels */
@@ -48,23 +48,59 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0c0e;
+  background: #1e1e1e;
 }
 ::-webkit-scrollbar-thumb {
-  background: #232630;
+  background: #45454a;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #373b49;
+  background: #5a5a5f;
 }
 
-/* Font family helpers */
 .font-mono {
   font-family: 'JetBrains Mono', monospace;
 }
 .font-sans {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Product Sans', 'Google Sans', 'Inter', system-ui, sans-serif;
 }
 .font-heading {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Product Sans', 'Google Sans', 'Inter', system-ui, sans-serif;
+}
+
+body {
+  font-family: 'Product Sans', 'Google Sans', 'Inter', system-ui, sans-serif;
+  background: #1e1e1e;
+  color: #cccccc;
+}
+
+.app-shell {
+  background: #1e1e1e;
+  color: #cccccc;
+}
+
+.app-header {
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+[class*="bg-[#0b0c0e]"] {
+  background-color: #1e1e1e;
+}
+
+[class*="bg-[#111215]"],
+[class*="bg-[#131418]"] {
+  background-color: #252526;
+}
+
+[class*="bg-[#16181d]"] {
+  background-color: #2d2d30;
+}
+
+[class*="bg-[#1c1e24]"] {
+  background-color: #333337;
+}
+
+[class*="bg-[#232630]"] {
+  background-color: #383838;
 }

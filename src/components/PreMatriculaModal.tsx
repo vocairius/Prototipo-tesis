@@ -44,7 +44,7 @@ export const PreMatriculaModal: React.FC<PreMatriculaModalProps> = ({
   const isOverMax = totalCredits > 18;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4">
       <div className="w-full max-w-lg bg-[#111215] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
@@ -77,7 +77,7 @@ export const PreMatriculaModal: React.FC<PreMatriculaModalProps> = ({
                     ? 'bg-amber-400'
                     : isOverMax
                     ? 'bg-rose-500'
-                    : 'bg-gradient-to-r from-emerald-500 to-cyan-400'
+                    : 'bg-[#c4ee53]'
                 }`}
                 style={{ width: `${Math.min(100, (totalCredits / 18) * 100)}%` }}
               />

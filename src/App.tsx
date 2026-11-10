@@ -1,22 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { INITIAL_COURSES, TOTAL_CREDITS } from './data/curriculumData';
+import { INITIAL_COURSES, TOTAL_CREDITS, TOTAL_SEMESTRES } from './data/curriculumData';
 import { Course } from './types/curriculum';
 import { TopHeader } from './components/TopHeader';
 import { LeftDock } from './components/LeftDock';
 import { CanvasArea } from './components/CanvasArea';
 import { InspectorSidebar } from './components/InspectorSidebar';
-import { MallaFlujoView } from './components/MallaFlujoView';
-import { AuditoriaGradoView } from './components/AuditoriaGradoView';
-import { DiagnosticModal } from './components/DiagnosticModal';
 import { PreMatriculaModal } from './components/PreMatriculaModal';
 import { CuellosBotellaModal } from './components/CuellosBotellaModal';
 import { HistoryModal } from './components/HistoryModal';
 import { CoursesCatalogModal } from './components/CoursesCatalogModal';
-import { SettingsModal } from './components/SettingsModal';
+import { SemesterOnboardingModal } from './components/SemesterOnboardingModal';
 
 export default function App() {
   const [courses, setCourses] = useState<Course[]>(INITIAL_COURSES);
-  const [activeView, setActiveView] = useState<'canvas' | 'malla' | 'auditoria'>('canvas');
+  const [isSemesterOnboardingOpen, setIsSemesterOnboardingOpen] = useState(true);
+  const [currentSemester, setCurrentSemester] = useState(TOTAL_SEMESTRES[0] ?? 1);
+  const [hasSelectedCourse, setHasSelectedCourse] = useState(false);
 
   // Abrir la malla con una materia que se pueda aprobar y consultar.
   const [selectedCourseId, setSelectedCourseId] = useState<string>(
@@ -32,20 +31,11 @@ export default function App() {
   const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
 
   // Modals state
-  const [isDiagnosticModalOpen, setIsDiagnosticModalOpen] = useState<boolean>(false);
   const [isPreMatriculaModalOpen, setIsPreMatriculaModalOpen] = useState<boolean>(false);
   const [isBottlenecksModalOpen, setIsBottlenecksModalOpen] = useState<boolean>(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState<boolean>(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
-
-  // Theme
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-
-  // Settings
-  const [showDotGrid, setShowDotGrid] = useState<boolean>(true);
-  const [showLabels, setShowLabels] = useState<boolean>(true);
-  const [smoothCurves, setSmoothCurves] = useState<boolean>(true);
+  const theme: 'dark' = 'dark';
 
   const approvedCourseIds = useMemo(
     () => new Set(courses.filter((course) => course.status === 'Aprobado').map((course) => course.id)),
@@ -141,126 +131,68 @@ export default function App() {
     }
   };
 
-  // Apply diagnostic settings
-  const handleApplyDiagnostic = (settings: {
-    semester: number;
-    hasRetakes: boolean;
-    intensityWorkload: 'light' | 'standard' | 'intense';
-    trackFocus: 'multimedia' | 'software' | 'gamedev';
-  }) => {
-    setTimeout(() => {
-      // La carga de créditos se toma del semestre solicitado, respetando el
-      // límite de créditos según la intensidad elegida.
-      const limite = settings.intensityWorkload === 'light' ? 12 : settings.intensityWorkload === 'intense' ? 18 : 14;
-      const delSemestre = coursesWithPrerequisiteStatus.filter(
-        (course) => course.semester === settings.semester && course.status === 'Disponible'
-      );
-
-      let acumulado = 0;
-      const seleccionadas: string[] = [];
-      for (const course of delSemestre) {
-        if (acumulado + course.credits > limite) continue;
-        seleccionadas.push(course.id);
-        acumulado += course.credits;
-      }
-
-      setEnrolledCourseIds(seleccionadas);
-      if (seleccionadas.length > 0) setSelectedCourseId(seleccionadas[0]);
-      setActiveView('canvas');
-    }, 700);
+  const handleConfirmCurrentSemester = (semester: number) => {
+    setCurrentSemester(semester);
+    setCourses(
+      INITIAL_COURSES.map((course) => ({
+        ...course,
+        status: course.semester < semester ? 'Aprobado' : 'Disponible',
+        grade: undefined
+      }))
+    );
+    setEnrolledCourseIds([]);
+    const firstCourseInSemester = INITIAL_COURSES.find((course) => course.semester === semester);
+    if (firstCourseInSemester) setSelectedCourseId(firstCourseInSemester.id);
+    setIsSemesterOnboardingOpen(false);
   };
 
   return (
-    <div className={`h-screen w-screen flex flex-col overflow-hidden ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className="app-shell h-screen w-screen flex flex-col overflow-hidden dark">
       {/* Top Header Navigation */}
-      <TopHeader
-        activeView={activeView}
-        onSelectView={setActiveView}
-        onOpenDiagnostic={() => setIsDiagnosticModalOpen(true)}
-        enrolledCredits={enrolledCredits}
-        onOpenPreMatricula={() => setIsPreMatriculaModalOpen(true)}
-        onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
-        isInspectorOpen={isInspectorOpen}
-        theme={theme}
-        onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-      />
+      <TopHeader />
 
       {/* Main Workspace Body */}
-      <div className="flex-1 flex overflow-hidden relative" data-purpose="workspace-body">
-        {/* Left Floating Dock */}
+      <div className="flex-1 flex flex-col overflow-hidden relative" data-purpose="workspace-body">
         <LeftDock
-          courses={coursesWithPrerequisiteStatus}
-          onSelectView={setActiveView}
           onOpenBottlenecks={() => setIsBottlenecksModalOpen(true)}
           onOpenHistory={() => setIsHistoryModalOpen(true)}
           onOpenCoursesCatalog={() => setIsCatalogModalOpen(true)}
-          onOpenSettings={() => setIsSettingsModalOpen(true)}
-          unreadCount={2}
         />
 
-        {/* Center Content View Switcher */}
-        {activeView === 'canvas' && (
+        <div className="flex-1 flex overflow-hidden relative">
           <CanvasArea
             courses={coursesWithPrerequisiteStatus}
             selectedCourseId={selectedCourseId}
+            currentSemester={currentSemester}
+            showUnlockRoute={hasSelectedCourse}
             onSelectCourse={(id) => {
               setSelectedCourseId(id);
+              setHasSelectedCourse(true);
               if (!isInspectorOpen) setIsInspectorOpen(true);
             }}
             enrolledCourseIds={enrolledCourseIds}
             theme={theme}
           />
-        )}
 
-        {activeView === 'malla' && (
-          <MallaFlujoView
-            courses={coursesWithPrerequisiteStatus}
-            selectedCourseId={selectedCourseId}
-            onSelectCourse={(id) => {
-              setSelectedCourseId(id);
-              if (!isInspectorOpen) setIsInspectorOpen(true);
-            }}
+          {/* Right Inspector Sidebar */}
+          <InspectorSidebar
+            isOpen={isInspectorOpen}
+            onClose={() => setIsInspectorOpen(false)}
+            selectedCourse={selectedCourse}
+            allCourses={coursesWithPrerequisiteStatus}
             enrolledCourseIds={enrolledCourseIds}
-            theme={theme}
-          />
-        )}
-
-        {activeView === 'auditoria' && (
-          <AuditoriaGradoView
-            courses={coursesWithPrerequisiteStatus}
-            enrolledCourseIds={enrolledCourseIds}
+            onToggleEnrollCourse={handleToggleEnrollCourse}
+            onToggleCourseApproval={handleToggleCourseApproval}
             totalCompletedCredits={totalCompletedCredits}
             totalDegreeCredits={totalDegreeCredits}
             enrolledCredits={enrolledCredits}
+            onConfirmPreMatricula={() => setIsPreMatriculaModalOpen(true)}
             theme={theme}
           />
-        )}
-
-        {/* Right Inspector Sidebar */}
-        <InspectorSidebar
-          isOpen={isInspectorOpen}
-          onClose={() => setIsInspectorOpen(false)}
-          selectedCourse={selectedCourse}
-          allCourses={coursesWithPrerequisiteStatus}
-          enrolledCourseIds={enrolledCourseIds}
-          onToggleEnrollCourse={handleToggleEnrollCourse}
-          onToggleCourseApproval={handleToggleCourseApproval}
-          totalCompletedCredits={totalCompletedCredits}
-          totalDegreeCredits={totalDegreeCredits}
-          enrolledCredits={enrolledCredits}
-          onConfirmPreMatricula={() => setIsPreMatriculaModalOpen(true)}
-          theme={theme}
-        />
+        </div>
       </div>
 
       {/* Modals & Dialogs */}
-      <DiagnosticModal
-        isOpen={isDiagnosticModalOpen}
-        onClose={() => setIsDiagnosticModalOpen(false)}
-        onApplyDiagnostic={handleApplyDiagnostic}
-        currentSemester={3}
-      />
-
       <PreMatriculaModal
         isOpen={isPreMatriculaModalOpen}
         onClose={() => setIsPreMatriculaModalOpen(false)}
@@ -277,7 +209,7 @@ export default function App() {
         courses={coursesWithPrerequisiteStatus}
         onSelectCourse={(id) => {
           setSelectedCourseId(id);
-          setActiveView('canvas');
+          setHasSelectedCourse(true);
           setIsInspectorOpen(true);
         }}
       />
@@ -294,21 +226,18 @@ export default function App() {
         courses={coursesWithPrerequisiteStatus}
         onSelectCourse={(id) => {
           setSelectedCourseId(id);
-          setActiveView('canvas');
+          setHasSelectedCourse(true);
           setIsInspectorOpen(true);
         }}
       />
 
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        showDotGrid={showDotGrid}
-        setShowDotGrid={setShowDotGrid}
-        showLabels={showLabels}
-        setShowLabels={setShowLabels}
-        smoothCurves={smoothCurves}
-        setSmoothCurves={setSmoothCurves}
-      />
+      {isSemesterOnboardingOpen && (
+        <SemesterOnboardingModal
+          courses={INITIAL_COURSES}
+          semesters={TOTAL_SEMESTRES}
+          onConfirm={handleConfirmCurrentSemester}
+        />
+      )}
     </div>
   );
 }

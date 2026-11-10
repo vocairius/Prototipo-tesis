@@ -33,7 +33,7 @@ export const CuellosBotellaModal: React.FC<CuellosBotellaModalProps> = ({
     : [];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-[#111215] border border-amber-500/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-5 border-b border-white/[0.08] flex items-center justify-between bg-amber-950/20">

@@ -43,7 +43,7 @@ export const DiagnosticModal: React.FC<DiagnosticModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-200"
+      className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-200"
       data-purpose="diagnostic-dialog"
       id="diagnostic-modal"
     >

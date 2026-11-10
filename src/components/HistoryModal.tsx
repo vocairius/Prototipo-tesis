@@ -1,6 +1,6 @@
 import React from 'react';
 import { Course } from '../types/curriculum';
-import { FileText, CheckCircle2, Award, Calendar, X } from 'lucide-react';
+import { FileText, CheckCircle2, X } from 'lucide-react';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -15,7 +15,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, cou
   const totalApprovedCredits = approvedCourses.reduce((sum, c) => sum + c.credits, 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#303030]/75 backdrop-blur-md flex items-center justify-center p-4">
       <div className="w-full max-w-xl bg-[#111215] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
@@ -23,8 +23,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, cou
               <FileText className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">Historial Académico Certificado</h3>
-              <p className="text-xs text-zinc-400">Kardex de materias aprobadas y calificaciones</p>
+              <h3 className="text-sm font-semibold text-white">Materias cursadas</h3>
+              <p className="text-xs text-zinc-400">Asignaturas aprobadas y calificaciones</p>
             </div>
           </div>
           <button onClick={onClose} className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-[#16181d] transition">
@@ -36,7 +36,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, cou
           {/* Summary Box */}
           <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-[#16181d] border border-white/[0.05] text-center">
             <div>
-              <span className="text-[10px] text-zinc-400 block">Materias Aprobadas</span>
+              <span className="text-[10px] text-zinc-400 block">Materias cursadas</span>
               <span className="text-base font-bold text-white font-mono">{approvedCourses.length}</span>
             </div>
             <div>
@@ -83,7 +83,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, cou
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 font-semibold text-xs transition"
           >
-            Cerrar Kardex
+            Cerrar
           </button>
         </div>
       </div>

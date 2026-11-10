@@ -5,6 +5,8 @@ import { Minus, Plus, RotateCcw, Lock } from 'lucide-react';
 interface CanvasAreaProps {
   courses: Course[];
   selectedCourseId: string;
+  currentSemester: number;
+  showUnlockRoute: boolean;
   onSelectCourse: (courseId: string) => void;
   enrolledCourseIds: string[];
   theme: 'dark' | 'light';
@@ -13,6 +15,8 @@ interface CanvasAreaProps {
 export const CanvasArea: React.FC<CanvasAreaProps> = ({
   courses,
   selectedCourseId,
+  currentSemester,
+  showUnlockRoute,
   onSelectCourse,
   enrolledCourseIds,
   theme
@@ -66,7 +70,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         y: e.clientY - startPan.y
       });
     } else if (draggingNodeId) {
-      const newX = (e.clientX - pan.x) / zoom - dragOffset.x;
+      const newX = (e.clientX - pan.x) / zoom - dragOffset.x + graphOffsetX - GRAPH_INSET_X;
       const newY = (e.clientY - pan.y) / zoom - dragOffset.y;
       setPositions((prev) => ({
         ...prev,
@@ -86,7 +90,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     setDraggingNodeId(courseId);
     const pos = positions[courseId] || { x: 0, y: 0 };
     setDragOffset({
-      x: (e.clientX - pan.x) / zoom - pos.x,
+      x: (e.clientX - pan.x) / zoom - pos.x + graphOffsetX - GRAPH_INSET_X,
       y: (e.clientY - pan.y) / zoom - pos.y
     });
   };
@@ -102,37 +106,88 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   // Node dimension constants
   const NODE_WIDTH = 240;
   const NODE_HEIGHT = 100;
+  const GRAPH_INSET_X = 180;
 
-  // Tamaño del lienzo virtual: se calcula a partir de las posiciones reales
-  // de los nodos para que el grafo completo siempre sea visible.
+  const selectedCourse = courses.find((course) => course.id === selectedCourseId);
+  const unlockRouteCourseIds = useMemo(() => {
+    if (!showUnlockRoute) return new Set<string>();
+
+    const coursesById = new Map(courses.map((course) => [course.id, course]));
+    const route = new Set<string>();
+    const pending = [...(coursesById.get(selectedCourseId)?.unlocks ?? [])];
+
+    while (pending.length > 0) {
+      const courseId = pending.pop();
+      if (!courseId || route.has(courseId)) continue;
+      route.add(courseId);
+      pending.push(...(coursesById.get(courseId)?.unlocks ?? []));
+    }
+
+    return route;
+  }, [courses, selectedCourseId, showUnlockRoute]);
+
+  const visibleCourses = useMemo(
+    () =>
+      courses.filter(
+        (course) =>
+          course.semester === currentSemester ||
+          course.id === selectedCourseId ||
+          unlockRouteCourseIds.has(course.id)
+      ),
+    [courses, currentSemester, selectedCourseId, unlockRouteCourseIds]
+  );
+  const visibleCourseIds = useMemo(
+    () => new Set(visibleCourses.map((course) => course.id)),
+    [visibleCourses]
+  );
+  const graphOffsetX = useMemo(
+    () =>
+      visibleCourses.length > 0
+        ? Math.min(...visibleCourses.map((course) => positions[course.id]?.x ?? course.position.x))
+        : 0,
+    [positions, visibleCourses]
+  );
+
+  // Keep the focused semester and its unlock route framed in the virtual canvas.
   const { canvasWidth, canvasHeight } = useMemo(() => {
-    const xs = Object.values(positions).map((pos) => pos.x);
-    const ys = Object.values(positions).map((pos) => pos.y);
+    const visiblePositions = visibleCourses.map(
+      (course) => positions[course.id] ?? course.position
+    );
+    const xs = visiblePositions.map((pos) => pos.x - graphOffsetX);
+    const ys = visiblePositions.map((pos) => pos.y);
 
     const maxX = xs.length > 0 ? Math.max(...xs) : 0;
     const maxY = ys.length > 0 ? Math.max(...ys) : 0;
 
     return {
-      canvasWidth: Math.max(1400, maxX + NODE_WIDTH + 160),
+      canvasWidth: Math.max(1400, maxX + GRAPH_INSET_X + NODE_WIDTH + 160),
       canvasHeight: Math.max(850, maxY + NODE_HEIGHT + 120)
     };
-  }, [positions]);
+  }, [graphOffsetX, positions, visibleCourses]);
 
   // Compute Edge Paths dynamically based on current node positions
   const edges = useMemo(() => {
     // Las aristas se derivan de los prerrequisitos reales del dataset, de
     // modo que el DAG siempre refleja la malla vigente.
     const list = courses.flatMap((course) =>
-      course.prerequisites.map((prerequisiteId) => {
-        const prerequisite = courses.find((item) => item.id === prerequisiteId);
-        const isApproved = prerequisite?.status === 'Aprobado';
+      course.prerequisites
+        .filter(
+          (prerequisiteId) =>
+            visibleCourseIds.has(prerequisiteId) && visibleCourseIds.has(course.id)
+        )
+        .map((prerequisiteId) => {
+          const prerequisite = courses.find((item) => item.id === prerequisiteId);
+          const isApproved = prerequisite?.status === 'Aprobado';
 
-        return {
-          from: prerequisiteId,
-          to: course.id,
-          type: isApproved ? 'approved-gradient' : 'dashed-neutral'
-        };
-      })
+          return {
+            from: prerequisiteId,
+            to: course.id,
+            type: isApproved ? 'approved' : 'dashed-neutral',
+            isUnlockRoute:
+              (prerequisiteId === selectedCourseId || unlockRouteCourseIds.has(prerequisiteId)) &&
+              unlockRouteCourseIds.has(course.id)
+          };
+        })
     );
 
     return list.map((edge) => {
@@ -140,11 +195,11 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       const toPos = positions[edge.to] || { x: 0, y: 0 };
 
       // Outgoing port is right-middle of source
-      const x1 = fromPos.x + NODE_WIDTH;
+      const x1 = fromPos.x - graphOffsetX + GRAPH_INSET_X + NODE_WIDTH;
       const y1 = fromPos.y + NODE_HEIGHT / 2;
 
       // Incoming port is left-middle of target
-      const x2 = toPos.x;
+      const x2 = toPos.x - graphOffsetX + GRAPH_INSET_X;
       const y2 = toPos.y + NODE_HEIGHT / 2;
 
       // Curvature control points
@@ -171,15 +226,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         midY
       };
     });
-  }, [courses, positions]);
+  }, [courses, graphOffsetX, positions, selectedCourseId, unlockRouteCourseIds, visibleCourseIds]);
 
   // Highlight check
-  const selectedCourse = courses.find((c) => c.id === selectedCourseId);
   const isNodeConnectedToSelected = (courseId: string) => {
     if (!selectedCourse) return false;
     if (selectedCourse.id === courseId) return true;
-    if (selectedCourse.unlocks.includes(courseId)) return true;
-    return false;
+    return unlockRouteCourseIds.has(courseId);
   };
 
   return (
@@ -189,11 +242,25 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       className={`flex-1 h-full relative overflow-hidden select-none cursor-grab active:cursor-grabbing ${
-        theme === 'dark' ? 'bg-[#0b0c0e] bg-dot-grid' : 'bg-[#f8f9ff] bg-dot-grid-light'
+        theme === 'dark' ? 'bg-[#1e1e1e]' : 'bg-[#f3f3f3]'
       }`}
       data-purpose="node-graph-canvas"
       id="graph-viewport"
     >
+      <div
+        className="absolute top-4 left-20 z-20 flex items-center gap-3 rounded-xl border border-white/[0.1] bg-[#111215]/90 px-3 py-2 text-xs shadow-xl backdrop-blur"
+        aria-live="polite"
+      >
+        <span className="font-semibold text-white">Semestre {currentSemester}</span>
+        <span className="text-zinc-400">
+          {unlockRouteCourseIds.size > 0
+            ? `Ruta de desbloqueo: ${unlockRouteCourseIds.size} materias`
+            : showUnlockRoute
+              ? 'Esta materia no desbloquea otras'
+              : 'Haz clic en una materia para ver su ruta'}
+        </span>
+      </div>
+
       {/* Zoomable & Pannable Virtual Graph Area */}
       <div
         className="w-full h-full transform-gpu transition-transform duration-75 origin-top-left"
@@ -210,33 +277,19 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         >
           {/* SVG Vector Connections */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="lineGradApproved" x1="0%" x2="100%" y1="0%" y2="0%">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.9" />
-              </linearGradient>
-              <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
             {/* Render dynamic Bezier edges */}
             {edges.map((e, idx) => {
-              const isApproved = e.type === 'approved-gradient';
+              const isApproved = e.type === 'approved';
 
               return (
                 <g key={`edge-${idx}`}>
                   <path
                     d={e.pathData}
                     fill="none"
-                    stroke={isApproved ? 'url(#lineGradApproved)' : '#555b66'}
-                    strokeWidth={isApproved ? 2.5 : 1.5}
-                    strokeDasharray={isApproved ? undefined : '3 5'}
-                    strokeOpacity={isApproved ? 1 : 0.7}
+                    stroke={e.isUnlockRoute ? '#4e6cef' : isApproved ? '#c4ee53' : '#626267'}
+                    strokeWidth={e.isUnlockRoute || isApproved ? 2.5 : 1.5}
+                    strokeDasharray={e.isUnlockRoute || isApproved ? undefined : '3 5'}
+                    strokeOpacity={e.isUnlockRoute || isApproved ? 1 : 0.35}
                     className="transition-all duration-200"
                   />
                   {/* Endpoint connection dot */}
@@ -244,7 +297,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     cx={e.x2}
                     cy={e.y2}
                     r={isApproved ? 4 : 3}
-                    fill={isApproved ? '#06b6d4' : '#555b66'}
+                    fill={e.isUnlockRoute ? '#4e6cef' : isApproved ? '#c4ee53' : '#555b66'}
                     className="transition-all"
                   />
                 </g>
@@ -268,7 +321,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     className="absolute z-10 px-2 py-0.5 rounded bg-emerald-950/90 border border-emerald-500/40 text-[10px] font-mono text-emerald-300 shadow pointer-events-none transition-all"
                     style={{
                       top: `${toPos.y + 85}px`,
-                      left: `${toPos.x - 78}px`
+                      left: `${toPos.x - graphOffsetX + GRAPH_INSET_X - 78}px`
                     }}
                   >
                     Req = Aprobado (100%)
@@ -277,18 +330,19 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
               })}
 
           {/* Pill: Cuello de Botella */}
-          {courses
+          {visibleCourses
             .filter((course) => course.isBottleneck && positions[course.id])
             .slice(0, 1)
             .map((course) => {
               const pos = positions[course.id];
+              if (!visibleCourseIds.has(course.id)) return null;
               return (
                 <div
                   key={`pill-cuello-${course.id}`}
                   className="absolute z-10 px-2.5 py-0.5 rounded bg-amber-950/90 border border-amber-500/50 text-[10px] font-mono text-amber-300 shadow flex items-center gap-1 pointer-events-none transition-all"
                   style={{
                     top: `${pos.y + 65}px`,
-                    left: `${pos.x + 210}px`
+                    left: `${pos.x - graphOffsetX + GRAPH_INSET_X + 210}px`
                   }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -298,37 +352,33 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             })}
 
           {/* ==================== GRAPH NODES ==================== */}
-          {courses
+          {visibleCourses
             .filter((c) => positions[c.id])
             .map((course) => {
               const pos = positions[course.id];
               const isSelected = selectedCourseId === course.id;
               const isEnrolled = enrolledCourseIds.includes(course.id);
-              const isUnlockedBySelected =
-                selectedCourse?.status === 'Aprobado' && selectedCourse.unlocks.includes(course.id);
+              const isInUnlockRoute = unlockRouteCourseIds.has(course.id);
 
               // Styling per course state
               let borderClass = 'border-white/[0.08]';
               let glowClass = '';
               let badgeColor = 'bg-zinc-800 text-zinc-400 border-zinc-700';
 
-              if (isUnlockedBySelected) {
-                borderClass = 'border-emerald-400';
-                glowClass = 'glow-active';
-                badgeColor =
-                  course.status === 'Disponible'
-                    ? 'bg-emerald-400 text-[#0b0c0e] font-bold font-mono'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+              if (isInUnlockRoute) {
+                borderClass = 'border-[#4e6cef]';
+                glowClass = 'glow-cyan';
+                badgeColor = 'bg-[#4e6cef]/20 text-[#aebcff] border-[#4e6cef]/40';
               } else if (course.isBottleneck) {
                 borderClass = 'border-amber-500/50 hover:border-amber-400';
                 glowClass = 'glow-warning';
                 badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
               } else if (isEnrolled || course.status === 'Inscrito') {
-                borderClass = 'border-cyan-500/50 hover:border-cyan-400';
-                badgeColor = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
+                borderClass = 'border-[#4e6cef]/50 hover:border-[#4e6cef]';
+                badgeColor = 'bg-[#4e6cef]/20 text-[#aebcff] border-[#4e6cef]/40';
               } else if (course.status === 'Aprobado') {
-                borderClass = 'border-emerald-500/50 hover:border-emerald-400';
-                badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                borderClass = 'border-[#c4ee53]/50 hover:border-[#c4ee53]';
+                badgeColor = 'bg-[#c4ee53]/15 text-[#c4ee53] border-[#c4ee53]/30';
               } else if (course.status === 'Bloqueado') {
                 borderClass = 'border-zinc-800/80';
               }
@@ -336,9 +386,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
               // Color theme for shortCode badge (P1, P2, PO, etc.)
               let shortBadgeBg = 'bg-zinc-800 text-zinc-300 border-zinc-700';
               if (course.colorTheme === 'emerald') {
-                shortBadgeBg = 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400';
+                shortBadgeBg = 'bg-[#c4ee53]/15 border-[#c4ee53]/30 text-[#c4ee53]';
               } else if (course.colorTheme === 'cyan') {
-                shortBadgeBg = 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400';
+                shortBadgeBg = 'bg-[#4e6cef]/20 border-[#4e6cef]/40 text-[#aebcff]';
               } else if (course.colorTheme === 'amber') {
                 shortBadgeBg = 'bg-amber-500/20 border-amber-500/40 text-amber-400';
               } else if (course.colorTheme === 'violet') {
@@ -352,16 +402,18 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                   onMouseDown={(e) => handleNodeMouseDown(e, course.id)}
                   style={{
                     top: `${pos.y}px`,
-                    left: `${pos.x}px`,
+                    left: `${pos.x - graphOffsetX + GRAPH_INSET_X}px`,
                     width: `${NODE_WIDTH}px`
                   }}
                   className={`graph-card absolute rounded-2xl p-4 shadow-xl cursor-pointer transition duration-150 transform hover:-translate-y-0.5 group ${
                     theme === 'dark' ? 'bg-[#16181d]' : 'bg-white shadow-sm'
                   } ${borderClass} ${glowClass} ${
                     isSelected
-                      ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#0b0c0e] z-30'
+                      ? 'ring-2 ring-[#4e6cef] ring-offset-2 ring-offset-[#1e1e1e] z-30'
                       : isNodeConnectedToSelected(course.id)
                       ? 'opacity-100 z-20'
+                      : course.semester !== currentSemester
+                      ? 'opacity-30 z-10'
                       : 'z-10'
                   }`}
                   data-code={course.code}
@@ -378,9 +430,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                         theme === 'dark' ? 'border-[#111215]' : 'border-white'
                       } ${
                         course.status === 'Aprobado'
-                          ? 'bg-emerald-500'
+                          ? 'bg-[#c4ee53]'
                           : isEnrolled
-                          ? 'bg-cyan-400'
+                          ? 'bg-[#4e6cef]'
                           : 'bg-zinc-600'
                       }`}
                     />
@@ -395,9 +447,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                         course.isBottleneck
                           ? 'bg-amber-400'
                           : course.status === 'Aprobado'
-                          ? 'bg-emerald-500'
+                          ? 'bg-[#c4ee53]'
                           : isEnrolled
-                          ? 'bg-cyan-400'
+                          ? 'bg-[#4e6cef]'
                           : 'bg-zinc-600'
                       }`}
                     />
@@ -417,7 +469,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                             course.colorTheme === 'amber'
                               ? 'text-amber-400'
                               : course.colorTheme === 'cyan'
-                              ? 'text-cyan-400'
+                              ? 'text-[#4e6cef]'
                               : course.colorTheme === 'violet'
                               ? 'text-violet-400'
                               : 'text-emerald-400'
@@ -450,7 +502,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     {course.status === 'Aprobado' ? (
                       <>
                         <span>
-                          Nota: <strong className="text-white font-mono">{course.grade}/10</strong>
+                          {course.grade !== undefined ? (
+                            <>
+                              Nota: <strong className="text-white font-mono">{course.grade}/10</strong>
+                            </>
+                          ) : (
+                            <strong className="text-white">Completada</strong>
+                          )}
                         </span>
                         <span className="text-emerald-400 font-mono font-medium">Aprobado</span>
                       </>
