@@ -74,6 +74,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
 
   // Node positions map so users can drag nodes if desired
   const [positions, setPositions] = useState<{ [id: string]: { x: number; y: number } }>(() => {
@@ -132,6 +133,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
   const handleNodeMouseDown = (e: React.MouseEvent, courseId: string) => {
     e.stopPropagation();
+    setSelectedSemester(null);
     onSelectCourse(courseId);
     setDraggingNodeId(courseId);
     const pos = positions[courseId] || { x: 0, y: 0 };
@@ -211,6 +213,24 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         ? Math.min(...visibleCourses.map((course) => positions[course.id]?.x ?? course.position.x))
         : 0,
     [positions, visibleCourses]
+  );
+  const semesterColumns = useMemo(
+    () =>
+      [...new Set(courses.map((course) => course.semester))]
+        .sort((a, b) => a - b)
+        .map((semester) => {
+          const semesterCourses = courses.filter((course) => course.semester === semester);
+          return {
+            semester,
+            courseCount: semesterCourses.length,
+            x: Math.min(
+              ...semesterCourses.map(
+                (course) => positions[course.id]?.x ?? course.position.x
+              )
+            )
+          };
+        }),
+    [courses, positions]
   );
 
   useEffect(() => {
@@ -384,6 +404,49 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             height: canvasHeight
           }}
         >
+          {semesterColumns.map(({ semester, courseCount, x }) => {
+            const isSelected = selectedSemester === semester;
+            const headerClass = isSelected
+              ? 'border-[#c4ee53]/60 bg-[#c4ee53]/15 text-[#c4ee53]'
+              : 'border-white/[0.08] bg-[#111215]/80 text-zinc-300';
+            const headerStyle = {
+              top: '8px',
+              left: `${x - graphOffsetX + GRAPH_INSET_X}px`,
+              width: `${NODE_WIDTH}px`
+            };
+
+            return simulationMode ? (
+              <div
+                key={`semester-${semester}`}
+                className={`absolute z-10 flex h-8 items-center rounded-lg border px-3 text-xs font-semibold pointer-events-none ${headerClass}`}
+                style={headerStyle}
+              >
+                Semestre {semester}
+                <span className="ml-auto text-[10px] font-mono text-zinc-400">
+                  {courseCount} materias
+                </span>
+              </div>
+            ) : (
+              <button
+                key={`semester-${semester}`}
+                type="button"
+                aria-label={`Seleccionar todas las materias del semestre ${semester}`}
+                aria-pressed={isSelected}
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={() =>
+                  setSelectedSemester((previous) => (previous === semester ? null : semester))
+                }
+                className={`absolute z-10 flex h-8 items-center rounded-lg border px-3 text-xs font-semibold transition hover:border-[#c4ee53]/60 hover:text-[#c4ee53] ${headerClass}`}
+                style={headerStyle}
+              >
+                Semestre {semester}
+                <span className="ml-auto text-[10px] font-mono opacity-75">
+                  {isSelected ? 'Seleccionadas' : `${courseCount} materias`}
+                </span>
+              </button>
+            );
+          })}
+
           {/* SVG Vector Connections */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible" xmlns="http://www.w3.org/2000/svg">
             {/* Render dynamic Bezier edges */}
@@ -484,6 +547,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                 borderClass = 'border-[#c4ee53]';
                 glowClass = 'glow-active';
                 badgeColor = 'bg-[#c4ee53]/20 text-[#c4ee53] border-[#c4ee53]/40';
+              } else if (selectedSemester === course.semester) {
+                borderClass = 'border-[#c4ee53]/70';
+                glowClass = 'glow-active';
               } else if (isFailedCourse) {
                 borderClass = 'border-amber-400/60';
                 badgeColor = 'bg-amber-400/15 text-amber-200 border-amber-400/30';
@@ -527,6 +593,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       ? 'ring-2 ring-[#4e6cef] ring-offset-2 ring-offset-[#1e1e1e] z-30'
                       : isHovered
                       ? 'graph-card-hover-preview z-40'
+                      : selectedSemester === course.semester
+                      ? 'opacity-100 z-20 ring-1 ring-[#c4ee53]/40'
                       : simulationMode
                       ? isRecommended || isFailedCourse
                         ? 'opacity-80 z-20'
