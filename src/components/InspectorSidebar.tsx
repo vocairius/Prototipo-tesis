@@ -1,6 +1,6 @@
 import React from 'react';
 import { Course } from '../types/curriculum';
-import { Check, CheckCircle2, ChevronRight, BookOpen, Clock, UserCheck } from 'lucide-react';
+import { Check, CheckCircle2, ChevronRight, BookOpen, Clock, UserCheck, X } from 'lucide-react';
 
 interface InspectorSidebarProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ interface InspectorSidebarProps {
 
 export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   isOpen,
+  onClose,
   selectedCourse,
   allCourses,
   enrolledCourseIds,
@@ -58,24 +59,45 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
   });
 
   return (
-    <aside
-      className={`w-80 h-full border-l border-white/[0.08] flex flex-col shrink-0 z-20 shadow-2xl transition-panel ${
-        theme === 'dark' ? 'bg-[#131418]' : 'bg-[#eff4ff]'
-      }`}
-      data-purpose="inspector-sidebar"
-      id="inspector-sidebar"
-    >
-      {/* Panel Header */}
-      <div className="p-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-white">Inspector de Malla</h3>
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-black/55 md:hidden"
+        aria-label="Cerrar detalles de la materia"
+      />
+      <aside
+        role="complementary"
+        aria-label="Inspector de Malla"
+        className={`fixed inset-x-0 bottom-0 z-50 flex h-[78dvh] max-h-[640px] w-full flex-col rounded-t-2xl border-t border-white/[0.08] shadow-2xl transition-panel pb-[env(safe-area-inset-bottom)] md:static md:z-20 md:h-full md:max-h-none md:w-80 md:shrink-0 md:rounded-none md:border-l md:border-t-0 ${
+          theme === 'dark' ? 'bg-[#131418]' : 'bg-[#eff4ff]'
+        }`}
+        data-purpose="inspector-sidebar"
+        id="inspector-sidebar"
+      >
+        {/* Panel Header */}
+        <div className="p-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-white">Inspector de Malla</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 sm:inline-flex">
+              DAG-ACTIVE
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-zinc-400 transition hover:bg-white/[0.08] hover:text-white"
+              aria-label="Cerrar inspector"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">DAG-ACTIVE</span>
-      </div>
 
-      {/* Panel Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Panel Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <div className="grid grid-cols-2 gap-2" data-purpose="enrollment-summary">
           <div className="p-2.5 rounded-xl bg-[#16181d] border border-white/[0.05]">
             <span className="text-[10px] text-zinc-400 block">En matrícula</span>
@@ -241,7 +263,8 @@ export const InspectorSidebar: React.FC<InspectorSidebarProps> = ({
             Selecciona un nodo del grafo para inspeccionar sus dependencias y estado de aprobación.
           </div>
         )}
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   );
 };

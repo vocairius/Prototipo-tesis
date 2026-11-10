@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { PanelRightOpen } from 'lucide-react';
 import { INITIAL_COURSES, TOTAL_CREDITS, TOTAL_SEMESTRES } from './data/curriculumData';
 import { Course } from './types/curriculum';
 import { TopHeader } from './components/TopHeader';
@@ -31,7 +32,19 @@ export default function App() {
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([]);
 
   // Inspector Sidebar Open
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(
+    () => !window.matchMedia('(max-width: 767px)').matches
+  );
+
+  useEffect(() => {
+    const mobileViewport = window.matchMedia('(max-width: 767px)');
+    const syncInspectorToViewport = (event: MediaQueryListEvent) => {
+      setIsInspectorOpen(!event.matches);
+    };
+
+    mobileViewport.addEventListener('change', syncInspectorToViewport);
+    return () => mobileViewport.removeEventListener('change', syncInspectorToViewport);
+  }, []);
 
   // Modals state
   const [isPreMatriculaModalOpen, setIsPreMatriculaModalOpen] = useState<boolean>(false);
@@ -246,6 +259,17 @@ export default function App() {
             enrolledCredits={enrolledCredits}
             theme={theme}
           />
+          {!isInspectorOpen && (
+            <button
+              type="button"
+              onClick={() => setIsInspectorOpen(true)}
+              className="absolute bottom-4 right-4 z-30 flex items-center gap-2 rounded-xl border border-white/[0.12] bg-[#252526]/95 px-3 py-2.5 text-xs font-medium text-white shadow-xl backdrop-blur"
+              aria-label="Abrir detalles de la materia"
+            >
+              <PanelRightOpen className="h-4 w-4 text-[#c4ee53]" />
+              Detalles
+            </button>
+          )}
         </div>
       </div>
 

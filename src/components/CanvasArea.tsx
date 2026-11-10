@@ -764,7 +764,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       {/* Floating Canvas Controls (Bottom-left) */}
       <div
-        className="absolute bottom-6 left-20 z-20 flex items-center bg-[#111215]/90 backdrop-blur border border-white/[0.1] rounded-xl px-2 py-1.5 shadow-xl space-x-2 text-xs"
+        className="absolute bottom-20 left-3 z-20 flex items-center bg-[#111215]/90 backdrop-blur border border-white/[0.1] rounded-xl px-2 py-1.5 shadow-xl space-x-2 text-xs md:bottom-6 md:left-20"
         data-purpose="canvas-zoom-controls"
       >
         <button
